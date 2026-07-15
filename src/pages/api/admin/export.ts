@@ -132,7 +132,7 @@ export const GET: APIRoute = async () => {
   return new Response(lines.join('\r\n') + '\r\n', {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="gulf-coast-collection-inventory-${today}.csv"`,
+      'Content-Disposition': `attachment; filename="binford-collection-inventory-${today}.csv"`,
       'Cache-Control': 'no-store',
     },
   });

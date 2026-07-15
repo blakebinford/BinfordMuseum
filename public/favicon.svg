@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- The Binford Collection emblem on a gallery-wall square. Strokes are
+       heavier than the in-page lockup because favicons render at 16-32px. -->
+  <rect width="100" height="100" rx="20" fill="#1B1815"/>
+  <g fill="none" stroke="#EAE2D4" transform="translate(7 7) scale(0.86)">
+    <circle cx="50" cy="50" r="48" stroke-width="2"/>
+    <circle cx="50" cy="50" r="43.6" stroke-width="0.9"/>
+    <path d="M 50.00 17.00 L 57.41 39.80 L 81.38 39.80 L 61.99 53.90 L 69.40 76.70 L 50.00 62.60 L 30.60 76.70 L 38.01 53.90 L 18.62 39.80 L 42.59 39.80 Z" stroke-width="2" stroke-linejoin="miter"/>
+    <line x1="50.00" y1="17.00" x2="50" y2="50" stroke-width="1.1"/>
+    <line x1="81.38" y1="39.80" x2="50" y2="50" stroke-width="1.1"/>
+    <line x1="69.40" y1="76.70" x2="50" y2="50" stroke-width="1.1"/>
+    <line x1="30.60" y1="76.70" x2="50" y2="50" stroke-width="1.1"/>
+    <line x1="18.62" y1="39.80" x2="50" y2="50" stroke-width="1.1"/>
+    <line x1="57.41" y1="39.80" x2="50" y2="50" stroke-width="0.7" opacity="0.75"/>
+    <line x1="61.99" y1="53.90" x2="50" y2="50" stroke-width="0.7" opacity="0.75"/>
+    <line x1="50.00" y1="62.60" x2="50" y2="50" stroke-width="0.7" opacity="0.75"/>
+    <line x1="38.01" y1="53.90" x2="50" y2="50" stroke-width="0.7" opacity="0.75"/>
+    <line x1="42.59" y1="39.80" x2="50" y2="50" stroke-width="0.7" opacity="0.75"/>
+  </g>
+</svg>

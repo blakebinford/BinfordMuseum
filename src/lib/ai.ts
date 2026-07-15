@@ -11,6 +11,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { SITE_NAME } from './site';
 
 export const SONNET = 'claude-sonnet-5';
 
@@ -82,7 +83,7 @@ export async function proposeIntake(
   if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
 
   const system = [
-    'You are the cataloger for The Gulf Coast Collection, a private collection of Texana focused on Galveston, its harbor, and the engineering record of the Texas Gulf Coast, 1841 to 1930.',
+    `You are the cataloger for ${SITE_NAME}, a private collection of Texana focused on Galveston, its harbor, and the engineering record of the Texas Gulf Coast, 1841 to 1930.`,
     'You are shown photographs of a newly acquired piece. Propose a catalog entry for the owner to review.',
     'Write the label in the collection’s established curatorial voice. Study these existing labels as voice examples:',
     ...voiceExamples.map((label, i) => `<label_example index="${i + 1}">\n${label}\n</label_example>`),

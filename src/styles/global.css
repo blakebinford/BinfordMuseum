@@ -33,6 +33,12 @@ body { background:var(--wall); color:var(--paper); font-family:var(--sans); -web
 
 .entry { min-height:100svh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:120px 24px 80px; background:var(--wall-deep); position:relative; }
 .entry .eyebrow { font-size:11px; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:var(--accent); margin-bottom:34px; }
+/* The owner's lockup (Logo.astro) stands where the prototype's text eyebrow
+   was; it renders in the paper color via currentColor. The entry gets extra
+   bottom padding so the taller mark cannot push the wall text into the
+   absolutely positioned scroll cue on shorter viewports. */
+.entry .brandmark { display:block; width:min(320px, 72vw); height:auto; color:var(--paper); margin-bottom:34px; }
+.entry { padding-bottom:150px; }
 .entry h1 { font-family:var(--serif); font-weight:400; font-size:clamp(46px, 8.5vw, 104px); line-height:1.02; letter-spacing:.005em; max-width:11ch; }
 .entry .sub { font-family:var(--serif2); font-style:italic; font-size:clamp(16px,2.2vw,21px); color:var(--body); margin-top:28px; max-width:44ch; line-height:1.5; }
 .entry .walltext { margin-top:44px; max-width:54ch; font-size:14.5px; line-height:1.7; color:var(--body); }

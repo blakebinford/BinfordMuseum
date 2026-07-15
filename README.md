@@ -1,4 +1,4 @@
-# The Gulf Coast Collection
+# The Binford Collection
 
 A private collection of Texana, presented two ways:
 
@@ -6,6 +6,10 @@ A private collection of Texana, presented two ways:
 - **Collection archive** – a password-protected admin area at `/admin` where the owner catalogs pieces, records acquisitions and condition, runs AI-assisted intake and valuation research, and controls what the public sees.
 
 The design prototype and content source of record is `docs/gulf-coast-collection.html`. It is a design reference only and is never served as a page.
+
+### Branding
+
+The collection was renamed from The Gulf Coast Collection to The Binford Collection after launch. The display name lives in one place, `src/lib/site.ts` (`SITE_NAME`), and the owner's mark, a lone-star compass lockup over the word TEXANA, is `src/components/Logo.astro` (full lockup crowning the entry hall; the emblem alone is `public/favicon.svg`). The prototype file, the extraction script, and the seeded copy remain verbatim under the original name; the one place the old name appears in seeded copy (the exit colophon) is swapped at render time by `rebrand()` from the same module. Accession numbers keep their `GCC.` prefix on purpose: they are catalog identifiers and shareable URLs, not branding.
 
 ## Stack
 
