@@ -92,6 +92,39 @@ export async function verifySessionToken(token: string | undefined, secret: stri
   return constantTimeEqual(parts[2], expected);
 }
 
+/**
+ * Short-lived single-purpose tokens for dispatching the background worker,
+ * which runs outside the Astro app and never sees the session cookie: the
+ * authenticated dispatcher endpoint mints one and passes it in the request
+ * body. Format v1.<scope>.<exp>.<sig> is distinct from session tokens
+ * (which have three segments), so neither verifier accepts the other.
+ */
+export async function createScopedToken(
+  scope: string,
+  secret: string,
+  ttlSeconds: number,
+  now = Date.now(),
+): Promise<string> {
+  const exp = Math.floor(now / 1000) + ttlSeconds;
+  const payload = `v1.${scope}.${exp}`;
+  return `${payload}.${await hmac(payload, secret)}`;
+}
+
+export async function verifyScopedToken(
+  token: string | undefined,
+  scope: string,
+  secret: string | undefined,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!token || !secret) return false;
+  const parts = token.split('.');
+  if (parts.length !== 4 || parts[0] !== 'v1' || parts[1] !== scope) return false;
+  const exp = Number(parts[2]);
+  if (!Number.isFinite(exp) || exp * 1000 < now) return false;
+  const expected = await hmac(`v1.${scope}.${exp}`, secret);
+  return constantTimeEqual(parts[3], expected);
+}
+
 export function sessionCookieOptions(maxAgeSeconds: number = SESSION_TTL_SECONDS) {
   return {
     path: '/',
