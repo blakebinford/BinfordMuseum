@@ -78,10 +78,26 @@ The seed is split in two because Netlify build plugins may only write deploy-sco
 
 Schema changes later: edit `db/schema.ts`, run `npm run db:generate` (drizzle-kit, timestamp-prefixed output into `netlify/database/migrations`), test locally with `npm run db:migrate`, commit both. Netlify applies them to previews and production automatically.
 
+To run a build against your own Postgres (as CI for the migrations, or to preview real database content locally):
+
+```sh
+NETLIFY_DB_URL="postgresql://user@host/db" NETLIFY_DB_DRIVER=server npm run build
+```
+
+`NETLIFY_DB_DRIVER=server` selects the standard `pg` pool; without it, the Netlify Database driver assumes the platform's serverless (Neon HTTP) endpoint. On Netlify itself, neither variable is ever set by hand.
+
+## Public site notes
+
+- The walkthrough at `/` is prerendered from the database and reproduces the prototype exactly. A build-time structural check during development compared the rendered output figure-by-figure with `docs/gulf-coast-collection.html`: all 23 pieces verbatim (accession, title, meta, label, placement classes), trio/pair cabinet groupings, all six room headers and wall texts, entry/exit copy, storm-room treatment, Turn Over on the two reverse pieces only, and no em dashes anywhere.
+- Placement rhythm (`pl/pr/pc` + `wide/std/sm`, trio and pair cabinets) is presentation, mapped per room in `src/pages/index.astro`; pieces added to a room beyond the prototype's slots alternate left/right. The storm treatment is keyed to Room IV.
+- Two navigation affordances were added for the pages the spec adds beyond the prototype, styled entirely from existing tokens: a "View Piece Page" action in the lightbox, and a "Browse the Catalog" link in the exit section. Piece and catalog pages reuse the masthead with the brand linking home.
+- Original images are served by the on-demand route `/img/<blob key>` from the Blobs `images` store (with a fallback to the committed `seed/images/` copies so local dev works before the blob seed has run); all rendered `<img>` sources go through the Netlify Image CDN (`/.netlify/images`) for derivatives and format negotiation. The route only serves keys under `pieces/` and rejects traversal.
+- The privacy rule is enforced structurally in `src/lib/public-data.ts`: it is the only data source for public pages, and its queries name allowed columns explicitly. Prices, sellers, valuations, condition reports, research notes, and non-public provenance are never selected. Built output is additionally checked to contain none of those fields.
+
 ## Project phases
 
 - [x] **Phase 1** – docs verification, scaffold, deployable hello page
 - [x] **Phase 2** – database schema, migrations, Blobs, seed from the prototype
-- [ ] **Phase 3** – public walkthrough at prototype fidelity, `/catalog`, `/piece/[accession]`
+- [x] **Phase 3** – public walkthrough at prototype fidelity, `/catalog`, `/piece/[accession]`
 - [ ] **Phase 4** – admin area and authentication
 - [ ] **Phase 5** – AI intake, valuation research, CSV export

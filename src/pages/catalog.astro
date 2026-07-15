@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro';
+import { getPublicCollection } from '../lib/public-data';
+import { cdnSrcset, cdnUrl } from '../lib/images';
+
+export const prerender = true;
+
+const { rooms, pieces } = await getPublicCollection();
+
+const roomsById = new Map(rooms.map((r) => [r.id, r]));
+
+const OBJECT_TYPE_LABELS: Record<string, string> = {
+  map: 'Map',
+  document: 'Document',
+  currency: 'Currency',
+  stereoview: 'Stereoview',
+  photograph: 'Photograph',
+  print: 'Print',
+  certificate: 'Certificate',
+  object: 'Object',
+};
+
+function decadeOf(year: number | null): string {
+  if (!year) return '';
+  return `${Math.floor(year / 10) * 10}s`;
+}
+
+const cards = pieces.map((piece) => {
+  const front = piece.images.find((img) => img.kind === 'front');
+  const room = piece.roomId ? roomsById.get(piece.roomId) : undefined;
+  return {
+    piece,
+    front,
+    room,
+    decade: decadeOf(piece.dateSortYear),
+    search: `${piece.accession} ${piece.title} ${piece.label}`.toLowerCase(),
+  };
+});
+
+const types = [...new Set(pieces.map((p) => p.objectType))].sort();
+const decades = [...new Set(cards.map((c) => c.decade).filter(Boolean))].sort();
+---
+
+<Base
+  title="Catalog · The Gulf Coast Collection"
+  description="Browse every public piece in the Gulf Coast Collection: maps, money, photographs, and objects of the Texas Gulf Coast, 1841 to 1930."
+>
+  <header class="masthead">
+    <a class="brand" href="/">The Gulf Coast Collection</a>
+    <span class="where">Catalog</span>
+  </header>
+
+  <main class="pagewrap">
+    <div class="pagehead">
+      <p class="eyebrow r in">A Private Collection of Texana</p>
+      <h1 class="r in">Catalog</h1>
+      <p class="walltext r in">
+        Every public piece in the collection, in one place. Filter by kind of object, by room, or by
+        decade, or search the titles and labels. Select a piece for its full record.
+      </p>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <label for="f-type">Object Type</label>
+        <select id="f-type">
+          <option value="">All Types</option>
+          {types.map((t) => <option value={t}>{OBJECT_TYPE_LABELS[t] ?? t}</option>)}
+        </select>
+      </div>
+      <div class="control">
+        <label for="f-room">Room</label>
+        <select id="f-room">
+          <option value="">All Rooms</option>
+          {rooms.map((r) => <option value={String(r.id)}>{`Room ${r.numeral} · ${r.title}`}</option>)}
+        </select>
+      </div>
+      <div class="control">
+        <label for="f-decade">Decade</label>
+        <select id="f-decade">
+          <option value="">All Decades</option>
+          {decades.map((d) => <option value={d}>{d}</option>)}
+        </select>
+      </div>
+      <div class="control">
+        <label for="f-search">Search</label>
+        <input id="f-search" type="search" placeholder="Titles and labels" autocomplete="off" />
+      </div>
+      <span class="count" id="count">{cards.length} Pieces</span>
+    </div>
+
+    <div class="grid" id="grid">
+      {
+        cards.map(({ piece, front, room, decade, search }) => (
+          <a
+            class="card"
+            href={`/piece/${piece.accession}/`}
+            data-type={piece.objectType}
+            data-room={piece.roomId ?? ''}
+            data-decade={decade}
+            data-search={search}
+          >
+            <figure>
+              {front && (
+                <div class="frame">
+                  <img
+                    src={cdnUrl(front.blobKey, { w: 480 })}
+                    srcset={cdnSrcset(front.blobKey, front.width)}
+                    sizes="(max-width: 560px) 92vw, (max-width: 900px) 46vw, 350px"
+                    width={front.width}
+                    height={front.height}
+                    alt={front.alt || piece.title}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
+              <figcaption>
+                <span class="acc">{piece.accession}</span>
+                <h3>{piece.title}</h3>
+                <p class="cardmeta">
+                  {[piece.dateDisplay, OBJECT_TYPE_LABELS[piece.objectType] ?? piece.objectType, room ? `Room ${room.numeral}` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              </figcaption>
+            </figure>
+          </a>
+        ))
+      }
+    </div>
+    <p class="empty" id="empty" hidden>No pieces match the current filters.</p>
+  </main>
+
+  <script>
+    const typeSel = document.getElementById('f-type') as HTMLSelectElement;
+    const roomSel = document.getElementById('f-room') as HTMLSelectElement;
+    const decadeSel = document.getElementById('f-decade') as HTMLSelectElement;
+    const searchInput = document.getElementById('f-search') as HTMLInputElement;
+    const count = document.getElementById('count')!;
+    const empty = document.getElementById('empty')!;
+    const cards = [...document.querySelectorAll<HTMLElement>('.card')];
+
+    function apply() {
+      const type = typeSel.value;
+      const room = roomSel.value;
+      const decade = decadeSel.value;
+      const q = searchInput.value.trim().toLowerCase();
+      let shown = 0;
+      for (const card of cards) {
+        const match =
+          (!type || card.dataset.type === type) &&
+          (!room || card.dataset.room === room) &&
+          (!decade || card.dataset.decade === decade) &&
+          (!q || (card.dataset.search || '').includes(q));
+        card.hidden = !match;
+        if (match) shown += 1;
+      }
+      count.textContent = `${shown} ${shown === 1 ? 'Piece' : 'Pieces'}`;
+      empty.hidden = shown !== 0;
+    }
+
+    for (const el of [typeSel, roomSel, decadeSel]) el.addEventListener('change', apply);
+    searchInput.addEventListener('input', apply);
+  </script>
+</Base>

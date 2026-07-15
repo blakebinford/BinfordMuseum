@@ -1,20 +1,276 @@
 ---
-// Phase 1 placeholder. Replaced by the full walkthrough gallery in Phase 3.
+import Base from '../layouts/Base.astro';
+import PieceFigure from '../components/PieceFigure.astro';
+import { getPublicCollection } from '../lib/public-data';
+import type { PublicPiece } from '../lib/public-data';
+import seed from '../../seed/collection.json';
+
+// Prerendered from the database at build time; publishing in the admin fires
+// the build hook to regenerate this page.
+export const prerender = true;
+
+const { rooms, pieces } = await getPublicCollection();
+
+// Entry and exit copy is site chrome, verbatim from the prototype extraction.
+const { entry, exit } = seed;
+
+// Presentation only: the prototype's placement rhythm per room, keyed by room
+// numeral and slot position. Trio and pair slots consume 3 and 2 consecutive
+// pieces as cabinet cards. Pieces beyond the mapped slots alternate.
+// Room IV (The Storm) carries the darker storm treatment.
+type Slot = { group: 'trio' | 'pair' } | { layout: string };
+const ROOM_SLOTS: Record<string, Slot[]> = {
+  I: [{ layout: 'pl std' }, { layout: 'pr wide' }, { layout: 'pl wide' }],
+  II: [{ layout: 'pl wide' }, { layout: 'pr std' }, { layout: 'pl std' }],
+  III: [{ layout: 'pl wide' }, { layout: 'pr std' }, { layout: 'pl std' }, { layout: 'pr std' }],
+  IV: [{ group: 'trio' }, { layout: 'pc std' }],
+  V: [{ layout: 'pl std' }, { layout: 'pr std' }],
+  VI: [{ group: 'pair' }, { layout: 'pl std' }, { layout: 'pr std' }, { layout: 'pl sm' }, { layout: 'pr wide' }, { layout: 'pc sm' }],
+};
+const STORM_NUMERAL = 'IV';
+
+type Placed =
+  | { kind: 'single'; layout: string; piece: PublicPiece }
+  | { kind: 'group'; group: 'trio' | 'pair'; pieces: PublicPiece[] };
+
+function placeRoom(numeral: string, roomPieces: PublicPiece[]): Placed[] {
+  const slots = ROOM_SLOTS[numeral] ?? [];
+  const out: Placed[] = [];
+  let i = 0;
+  let singles = 0;
+  for (const slot of slots) {
+    if (i >= roomPieces.length) break;
+    if ('group' in slot) {
+      const size = slot.group === 'trio' ? 3 : 2;
+      out.push({ kind: 'group', group: slot.group, pieces: roomPieces.slice(i, i + size) });
+      i += size;
+    } else {
+      out.push({ kind: 'single', layout: slot.layout, piece: roomPieces[i] });
+      i += 1;
+      singles += 1;
+    }
+  }
+  while (i < roomPieces.length) {
+    out.push({ kind: 'single', layout: singles % 2 === 0 ? 'pl std' : 'pr std', piece: roomPieces[i] });
+    i += 1;
+    singles += 1;
+  }
+  return out;
+}
+
+const roomsWithPieces = rooms.map((room) => ({
+  room,
+  placed: placeRoom(
+    room.numeral,
+    pieces
+      .filter((p) => p.roomId === room.id)
+      .sort((a, b) => (a.roomOrder ?? 0) - (b.roomOrder ?? 0)),
+  ),
+}));
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Gulf Coast Collection</title>
-    <meta name="description" content="A private collection of Texana. The Texas Gulf Coast in maps, money, and photographs, 1841 to 1930." />
-  </head>
-  <body style="background:#1B1815;color:#EAE2D4;font-family:Georgia,serif;display:flex;min-height:100svh;align-items:center;justify-content:center;text-align:center;">
-    <main>
-      <p style="color:#A8492C;font-size:12px;letter-spacing:.26em;text-transform:uppercase;font-family:sans-serif;">A Private Collection of Texana</p>
-      <h1 style="font-weight:400;font-size:clamp(40px,7vw,88px);margin-top:20px;">Republic to Boom</h1>
-      <p style="color:#C4BAAB;margin-top:16px;">The galleries are being installed.</p>
-    </main>
-  </body>
-</html>
+<Base title="The Gulf Coast Collection" description={entry.sub}>
+  <header class="masthead">
+    <span class="brand">The Gulf Coast Collection</span>
+    <span class="where" id="where">Entry Hall</span>
+  </header>
+
+  <nav class="floorplan" aria-label="Floor plan">
+    <svg width="80" height={rooms.length * 40 + 16} viewBox={`0 0 80 ${rooms.length * 40 + 16}`}>
+      {rooms.map((room, i) => (
+        <g
+          class="fp"
+          data-target={`room-${room.sort}`}
+          tabindex="0"
+          role="button"
+          aria-label={`Go to room ${room.sort}`}
+        >
+          <rect x="1" y={1 + i * 40} width="34" height="26" rx="1" />
+          <text x="46" y={19 + i * 40}>{room.numeral}</text>
+        </g>
+      ))}
+    </svg>
+  </nav>
+
+  <section class="entry" id="entry" data-label="Entry Hall">
+    <p class="eyebrow r in">{entry.eyebrow}</p>
+    <h1 class="r in">{entry.title}</h1>
+    <p class="sub r in">{entry.sub}</p>
+    <p class="walltext r in">{entry.wallText}</p>
+    <div class="cue">{entry.cue}</div>
+  </section>
+
+  {
+    roomsWithPieces.map(({ room, placed }) => (
+      <section
+        class={`room${room.numeral === STORM_NUMERAL ? ' storm' : ''}`}
+        id={`room-${room.sort}`}
+        data-room={room.sort - 1}
+        data-label={`Room ${room.numeral} · ${room.title}`}
+      >
+        <header class="roomhead">
+          <p class="eyebrow">
+            <span class="num">Room {room.numeral}</span>
+            <span class="dates">{room.dateRange}</span>
+          </p>
+          <h2>{room.title}</h2>
+          <p class="walltext">{room.wallText}</p>
+        </header>
+        <div class="pieces">
+          {placed.map((slot) =>
+            slot.kind === 'group' ? (
+              <div class={slot.group}>
+                {slot.pieces.map((piece) => (
+                  <PieceFigure piece={piece} layout="cab" />
+                ))}
+              </div>
+            ) : (
+              <PieceFigure piece={slot.piece} layout={slot.layout} />
+            ),
+          )}
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="exit" id="exit" data-label="Exit">
+    <div class="in">
+      <div class="rule"></div>
+      <h2>{exit.title}</h2>
+      {exit.paragraphs.map((p: string) => <p>{p}</p>)}
+      <div class="exitlinks">
+        <a href="/catalog/">Browse the Catalog</a>
+      </div>
+      <p class="colophon">{exit.colophon}</p>
+    </div>
+  </section>
+
+  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Piece detail">
+    <div class="inner">
+      <img id="lbimg" src="" alt="" />
+      <div class="placard">
+        <span class="acc" id="lbacc"></span>
+        <h3
+          id="lbtitle"
+          style="font-family:var(--serif2);font-style:italic;font-weight:400;font-size:22px;margin-top:10px;"
+        >
+        </h3>
+        <p class="meta" id="lbmeta"></p>
+        <p class="note" id="lbnote"></p>
+      </div>
+      <div class="actions">
+        <button class="flipbtn" id="flip">Turn Over</button>
+        <a id="lbpage" href="/">View Piece Page</a>
+        <button id="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ro = new IntersectionObserver(
+      (es) =>
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            ro.unobserve(e.target);
+          }
+        }),
+      { threshold: 0.12 },
+    );
+    document.querySelectorAll('.roomhead, .piece, .exit .in').forEach((el) => {
+      el.classList.add('r');
+      ro.observe(el);
+    });
+
+    const where = document.getElementById('where')!;
+    const fps = [...document.querySelectorAll('.fp')];
+    const track = new IntersectionObserver(
+      (es) => {
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            const target = e.target as HTMLElement;
+            where.textContent = target.dataset.label || '';
+            fps.forEach((f) => f.classList.remove('active'));
+            const idx = target.dataset.room;
+            if (idx !== undefined) fps[+idx] && fps[+idx].classList.add('active');
+          }
+        });
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    document.querySelectorAll('[data-label]').forEach((s) => track.observe(s));
+
+    fps.forEach((f) => {
+      const go = () =>
+        document.getElementById((f as HTMLElement).dataset.target!)!.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+      f.addEventListener('click', go);
+      f.addEventListener('keydown', (e) => {
+        const key = (e as KeyboardEvent).key;
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          go();
+        }
+      });
+    });
+
+    const lb = document.getElementById('lb')!,
+      lbimg = document.getElementById('lbimg') as HTMLImageElement,
+      lbacc = document.getElementById('lbacc')!,
+      lbtitle = document.getElementById('lbtitle')!,
+      lbmeta = document.getElementById('lbmeta')!,
+      lbnote = document.getElementById('lbnote')!,
+      lbpage = document.getElementById('lbpage') as HTMLAnchorElement,
+      flip = document.getElementById('flip')!,
+      closeBtn = document.getElementById('close')!;
+    let frontSrc = '',
+      backSrc = '',
+      showingBack = false;
+
+    function openLB(frame: HTMLElement) {
+      const fig = frame.closest('figure')!;
+      frontSrc = frame.dataset.full || '';
+      backSrc = frame.dataset.back || '';
+      showingBack = false;
+      lbimg.src = frontSrc;
+      lbimg.alt = fig.querySelector('h3')!.textContent || '';
+      lbacc.textContent = fig.querySelector('.acc')!.textContent;
+      lbtitle.textContent = fig.querySelector('h3')!.textContent;
+      lbmeta.textContent = fig.querySelector('.meta')!.textContent;
+      lbnote.textContent = fig.querySelector('.note')!.textContent;
+      lbpage.href = `/piece/${frame.dataset.acc}/`;
+      flip.classList.toggle('show', !!backSrc);
+      flip.textContent = 'Turn Over';
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+    function closeLB() {
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.querySelectorAll<HTMLElement>('.frame').forEach((f) => {
+      f.addEventListener('click', () => openLB(f));
+      f.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLB(f);
+        }
+      });
+    });
+    flip.addEventListener('click', () => {
+      showingBack = !showingBack;
+      lbimg.src = showingBack ? backSrc : frontSrc;
+      flip.textContent = showingBack ? 'Show Front' : 'Turn Over';
+    });
+    closeBtn.addEventListener('click', closeLB);
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb) closeLB();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLB();
+    });
+  </script>
+</Base>

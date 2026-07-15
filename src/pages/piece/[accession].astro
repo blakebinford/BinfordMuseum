@@ -1,0 +1,205 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getPublicCollection } from '../../lib/public-data';
+import type { PublicPiece } from '../../lib/public-data';
+import { cdnLargeUrl, cdnSrcset, cdnUrl } from '../../lib/images';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const { pieces } = await getPublicCollection();
+  return pieces.map((piece) => ({ params: { accession: piece.accession } }));
+}
+
+const { accession } = Astro.params;
+const { rooms, pieces } = await getPublicCollection();
+const piece = pieces.find((p) => p.accession === accession);
+if (!piece) throw new Error(`No public piece ${accession}`);
+
+const room = rooms.find((r) => r.id === piece.roomId);
+const front = piece.images.find((img) => img.kind === 'front');
+const back = piece.images.find((img) => img.kind === 'back');
+const details = piece.images.filter((img) => img.kind === 'detail');
+
+const OBJECT_TYPE_LABELS: Record<string, string> = {
+  map: 'Map',
+  document: 'Document',
+  currency: 'Currency',
+  stereoview: 'Stereoview',
+  photograph: 'Photograph',
+  print: 'Print',
+  certificate: 'Certificate',
+  object: 'Object',
+};
+
+function truncate(text: string, max = 160): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+}
+
+// Related pieces: same room first, then same object type, never itself.
+function related(all: PublicPiece[], current: PublicPiece): PublicPiece[] {
+  const sameRoom = all.filter(
+    (p) => p.accession !== current.accession && p.roomId !== null && p.roomId === current.roomId,
+  );
+  const sameType = all.filter(
+    (p) =>
+      p.accession !== current.accession &&
+      p.objectType === current.objectType &&
+      !sameRoom.some((r) => r.accession === p.accession),
+  );
+  return [...sameRoom, ...sameType].slice(0, 4);
+}
+const relatedPieces = related(pieces, piece);
+
+const title = `${piece.title} · The Gulf Coast Collection`;
+const description = truncate(piece.label);
+const ogImage = front ? new URL(cdnUrl(front.blobKey, { w: 1200 }), Astro.site ?? Astro.url).href : undefined;
+
+const detailRows: Array<[string, string]> = [];
+detailRows.push(['Accession', piece.accession]);
+if (piece.dateDisplay) detailRows.push(['Date', piece.dateDisplay]);
+if (piece.maker) detailRows.push(['Maker', piece.maker]);
+if (piece.medium) detailRows.push(['Medium', piece.medium]);
+if (piece.dimensions) detailRows.push(['Dimensions', piece.dimensions]);
+detailRows.push(['Object Type', OBJECT_TYPE_LABELS[piece.objectType] ?? piece.objectType]);
+if (room) detailRows.push(['Room', `Room ${room.numeral} · ${room.title}`]);
+if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenance]);
+---
+
+<Base title={title} description={description} ogImage={ogImage} ogImageAlt={front?.alt || piece.title} ogType="article">
+  <header class="masthead">
+    <a class="brand" href="/">The Gulf Coast Collection</a>
+    <span class="where">{piece.accession}</span>
+  </header>
+
+  <main class="piecepage">
+    <a class="backlink" href="/catalog/">Back to Catalog</a>
+
+    {
+      front && (
+        <div class="frame">
+          <img
+            id="mainimg"
+            src={cdnUrl(front.blobKey, { w: 940 })}
+            srcset={cdnSrcset(front.blobKey, front.width)}
+            sizes="(max-width: 900px) 92vw, 852px"
+            width={front.width}
+            height={front.height}
+            alt={front.alt || piece.title}
+            data-front={cdnLargeUrl(front.blobKey, front.width)}
+            data-front-srcset={cdnSrcset(front.blobKey, front.width)}
+            data-back={back ? cdnLargeUrl(back.blobKey, back.width) : null}
+          />
+        </div>
+      )
+    }
+
+    <div class="placard">
+      <span class="acc">{piece.accession}</span>
+      <h1>{piece.title}</h1>
+      <p class="meta">{piece.meta}</p>
+      <p class="note">{piece.label}</p>
+    </div>
+
+    {
+      (back || details.length > 0) && (
+        <div class="actionsrow">
+          {back && <button id="flip">Turn Over</button>}
+        </div>
+      )
+    }
+
+    {
+      details.length > 0 && (
+        <div class="related">
+          <h2>Details</h2>
+          <div class="grid">
+            {details.map((img) => (
+              <div class="frame">
+                <img
+                  src={cdnUrl(img.blobKey, { w: 480 })}
+                  srcset={cdnSrcset(img.blobKey, img.width)}
+                  sizes="(max-width: 900px) 46vw, 200px"
+                  width={img.width}
+                  height={img.height}
+                  alt={img.alt || `${piece.title}, detail`}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    <dl class="details">
+      {detailRows.map(([label, value]) => (
+        <>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </>
+      ))}
+    </dl>
+
+    {
+      relatedPieces.length > 0 && (
+        <div class="related">
+          <h2>Related Pieces</h2>
+          <div class="grid">
+            {relatedPieces.map((rel) => {
+              const relFront = rel.images.find((img) => img.kind === 'front');
+              return (
+                <a class="card" href={`/piece/${rel.accession}/`}>
+                  <figure>
+                    {relFront && (
+                      <div class="frame">
+                        <img
+                          src={cdnUrl(relFront.blobKey, { w: 480 })}
+                          width={relFront.width}
+                          height={relFront.height}
+                          alt={relFront.alt || rel.title}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    )}
+                    <figcaption>
+                      <span class="acc">{rel.accession}</span>
+                      <h3>{rel.title}</h3>
+                    </figcaption>
+                  </figure>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )
+    }
+  </main>
+
+  <script>
+    // Turn Over: only wired on the two pieces with a reverse image; the
+    // button is not rendered otherwise.
+    const flip = document.getElementById('flip');
+    const img = document.getElementById('mainimg') as HTMLImageElement | null;
+    let showingBack = false;
+    if (flip && img) {
+      flip.addEventListener('click', () => {
+        showingBack = !showingBack;
+        if (showingBack) {
+          img.removeAttribute('srcset');
+          img.removeAttribute('sizes');
+          img.src = img.dataset.back || '';
+        } else {
+          img.src = img.dataset.front || '';
+          img.setAttribute('srcset', img.dataset.frontSrcset || '');
+          img.setAttribute('sizes', '(max-width: 900px) 92vw, 852px');
+        }
+        flip.textContent = showingBack ? 'Show Front' : 'Turn Over';
+      });
+    }
+  </script>
+</Base>
