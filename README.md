@@ -94,6 +94,14 @@ NETLIFY_DB_URL="postgresql://user@host/db" NETLIFY_DB_DRIVER=server npm run buil
 - Publishing or unpublishing a piece always fires the build hook; saving edits, image changes, or public-provenance changes fire it only when the piece is public. If `BUILD_HOOK_URL` is unset, changes still save and the admin says the site will update on the next deploy.
 - Piece deletion cascades to all child records and removes the piece's blobs.
 
+## AI features
+
+Both AI features run on the current Claude Sonnet model (`claude-sonnet-5`) through the official `@anthropic-ai/sdk`, using the owner's `ANTHROPIC_API_KEY`. Model and tool choices were verified against current Anthropic documentation (July 2026): adaptive thinking is this model's default (no thinking configuration is sent), sampling parameters are not sent (rejected on this model), structured JSON uses `output_config.format`, and the current web search tool variant for it is `web_search_20260209`. Netlify synchronous functions allow 60 seconds (verified against current Functions docs), which bounds the research call; web search is capped at 5 uses per run.
+
+- **Intake** (`/admin/intake`): upload up to four photographs of a new piece with optional notes. A server function sends them to the model with several existing labels from the database as voice examples; it proposes title, date, maker, medium, object type, meta line, and a draft label in the collection's register, with an instruction (and a server-side backstop) that no em dashes appear. The proposal is presented for review and editing, then committed as a draft (`is_public = false`) with its photographs. Publishing remains an explicit action on the piece page and fires the build hook.
+- **Valuation research** (button on each piece's admin page): a server function has the model research comparable sales with web search, prioritizing Heritage Auctions results, eBay sold listings, and dealer catalogs, then a second, short structured-output request extracts the range and comparables (kept separate because citation-bearing search results and structured outputs are incompatible in one request). The result is stored as a new `valuations` row with method `ai_research`, including the comparables (source, description, price, date, URL) as JSONB. The piece page shows valuation history as a simple SVG chart, and AI-derived valuations are labeled as estimates everywhere they appear, including the CSV export.
+- **Export** (`/admin/export`): downloads the full inventory as CSV for an insurance schedule: catalog record, acquisition data (date, source, price paid, provenance), latest valuation per piece (queried from the time series), latest condition grade, and image count.
+
 ## Public site notes
 
 - The walkthrough at `/` is prerendered from the database and reproduces the prototype exactly. A build-time structural check during development compared the rendered output figure-by-figure with `docs/gulf-coast-collection.html`: all 23 pieces verbatim (accession, title, meta, label, placement classes), trio/pair cabinet groupings, all six room headers and wall texts, entry/exit copy, storm-room treatment, Turn Over on the two reverse pieces only, and no em dashes anywhere.
@@ -108,4 +116,4 @@ NETLIFY_DB_URL="postgresql://user@host/db" NETLIFY_DB_DRIVER=server npm run buil
 - [x] **Phase 2** – database schema, migrations, Blobs, seed from the prototype
 - [x] **Phase 3** – public walkthrough at prototype fidelity, `/catalog`, `/piece/[accession]`
 - [x] **Phase 4** – admin area and authentication
-- [ ] **Phase 5** – AI intake, valuation research, CSV export
+- [x] **Phase 5** – AI intake, valuation research, CSV export

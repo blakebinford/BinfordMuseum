@@ -33,11 +33,14 @@ const NOTICES: Record<string, string> = {
   'condition-deleted': 'Condition report removed.',
   note: 'Research note saved.',
   'note-deleted': 'Research note removed.',
+  'ai-valuation': 'AI valuation research recorded below. It is an estimate, not an appraisal.',
 };
 const ERRORS: Record<string, string> = {
   invalid: 'The form was missing required fields.',
   accession: 'That accession number is already in use.',
   image: 'Upload failed. Use a JPEG or PNG under 8 MB.',
+  'ai-config': 'ANTHROPIC_API_KEY is not configured on the server, so AI research is unavailable.',
+  'ai-failed': 'The valuation research did not complete. Check the function logs and try again.',
 };
 const notice = saved ? NOTICES[saved] : null;
 const errorMessage = error ? (ERRORS[error] ?? ERRORS.invalid) : null;
@@ -62,6 +65,35 @@ function money(low: number | null, high: number | null): string {
   if (low !== null && high !== null && low !== high) return `${formatCents(low)} to ${formatCents(high)}`;
   return formatCents(low ?? high) || 'No amount';
 }
+
+// Simple valuation-history chart: evenly spaced entries in date order, a bar
+// per valuation spanning low to high, midpoints joined. AI rows are estimates
+// and are marked as such.
+const chartable = valuations.filter((v) => v.amountLowCents !== null || v.amountHighCents !== null);
+const chart = (() => {
+  if (chartable.length === 0) return null;
+  const W = 640;
+  const H = 220;
+  const PAD = { left: 64, right: 16, top: 16, bottom: 34 };
+  const values = chartable.flatMap((v) => [v.amountLowCents, v.amountHighCents]).filter((n): n is number => n !== null);
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (min === max) {
+    min = min * 0.9;
+    max = max * 1.1 || 100;
+  }
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const x = (i: number) => PAD.left + (chartable.length === 1 ? innerW / 2 : (i / (chartable.length - 1)) * innerW);
+  const y = (cents: number) => PAD.top + innerH - ((cents - min) / (max - min)) * innerH;
+  const fmt = (cents: number) => `$${Math.round(cents / 100).toLocaleString('en-US')}`;
+  const points = chartable.map((v, i) => {
+    const low = v.amountLowCents ?? v.amountHighCents!;
+    const high = v.amountHighCents ?? v.amountLowCents!;
+    return { i, v, cx: x(i), yLow: y(low), yHigh: y(high), yMid: y((low + high) / 2), mid: (low + high) / 2 };
+  });
+  return { W, H, PAD, min, max, points, fmt, innerH };
+})();
 ---
 
 <Admin title={piece.accession} active="pieces">
@@ -187,11 +219,47 @@ function money(low: number | null, high: number | null): string {
   </form>
 
   <h2>Valuations</h2>
+  <div class="btnrow">
+    <form method="post" action={`/api/admin/pieces/${piece.id}/valuations/ai`}>
+      <button class="btn primary" type="submit">Run AI Valuation Research</button>
+    </form>
+    <span class="count">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Takes up to a minute; the result is an estimate.</span>
+  </div>
+  {
+    chart && (
+      <div class="chart">
+        <svg viewBox={`0 0 ${chart.W} ${chart.H}`} role="img" aria-label="Valuation history">
+          <line x1={chart.PAD.left} y1={chart.PAD.top} x2={chart.PAD.left} y2={chart.PAD.top + chart.innerH} stroke="var(--line)" />
+          <line x1={chart.PAD.left} y1={chart.PAD.top + chart.innerH} x2={chart.W - chart.PAD.right} y2={chart.PAD.top + chart.innerH} stroke="var(--line)" />
+          <text class="axis" x={chart.PAD.left - 8} y={chart.PAD.top + 4} text-anchor="end">{chart.fmt(chart.max)}</text>
+          <text class="axis" x={chart.PAD.left - 8} y={chart.PAD.top + chart.innerH} text-anchor="end">{chart.fmt(chart.min)}</text>
+          {chart.points.length > 1 && (
+            <polyline
+              points={chart.points.map((p) => `${p.cx},${p.yMid}`).join(' ')}
+              fill="none"
+              stroke="var(--muted)"
+              stroke-width="1"
+            />
+          )}
+          {chart.points.map((p) => (
+            <g>
+              <line x1={p.cx} y1={p.yLow} x2={p.cx} y2={p.yHigh} stroke="var(--accent)" stroke-width="3" opacity="0.55" />
+              <circle cx={p.cx} cy={p.yMid} r="4" fill="var(--accent)" />
+              <title>{`${p.v.valuedOn} · ${METHOD_LABELS.get(p.v.method) ?? p.v.method} · ${money(p.v.amountLowCents, p.v.amountHighCents)}`}</title>
+              <text class="axis" x={p.cx} y={chart.PAD.top + chart.innerH + 16} text-anchor="middle">
+                {p.v.valuedOn.slice(0, 7)}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    )
+  }
   {
     valuations.length > 0 && (
       <table class="list">
         <thead>
-          <tr><th>Valued On</th><th>Method</th><th>Range</th><th>Notes</th><th></th></tr>
+          <tr><th>Valued On</th><th>Method</th><th>Range</th><th>Notes and Comparables</th><th></th></tr>
         </thead>
         <tbody>
           {[...valuations].reverse().map((v) => (
@@ -199,7 +267,24 @@ function money(low: number | null, high: number | null): string {
               <td>{v.valuedOn}</td>
               <td>{METHOD_LABELS.get(v.method) ?? v.method}</td>
               <td class="num">{money(v.amountLowCents, v.amountHighCents)}</td>
-              <td>{v.notes ?? ''}</td>
+              <td>
+                {v.notes ?? ''}
+                {(v.comparables ?? []).length > 0 && (
+                  <ul style="margin:10px 0 0 16px;">
+                    {(v.comparables ?? []).map((c) => (
+                      <li style="margin-bottom:6px;">
+                        {c.url ? (
+                          <a href={c.url} target="_blank" rel="noopener" style="color:var(--paper);">{c.source}</a>
+                        ) : (
+                          c.source
+                        )}
+                        {': '}
+                        {c.description} {c.price && `· ${c.price}`} {c.date && `· ${c.date}`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </td>
               <td>
                 <form method="post" action={`/api/admin/valuations/${v.id}/delete`}>
                   <button class="btn" type="submit">Remove</button>

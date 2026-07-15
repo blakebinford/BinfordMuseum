@@ -1,10 +1,174 @@
 ---
 import Admin from '../../layouts/Admin.astro';
+import { asc } from 'drizzle-orm';
+import { getDb, tables } from '../../lib/db';
+import { aiConfigured } from '../../lib/ai';
 
 export const prerender = false;
+
+const rooms = await getDb().select().from(tables.rooms).orderBy(asc(tables.rooms.sort));
+const configured = aiConfigured();
+
+const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph', 'print', 'certificate', 'object'];
 ---
 
 <Admin title="Intake" active="intake">
   <h1>Intake</h1>
-  <p class="lede">AI-assisted intake arrives in the next build phase. Until then, use New Piece (Manual) from the Pieces page.</p>
+  <p class="lede">
+    Photograph a new piece, and the model proposes a catalog entry in the collection's voice: title, date, maker,
+    medium, object type, and a draft label. Everything is editable before anything is saved, the piece is created as a
+    draft, and it reaches the public gallery only when you publish it.
+  </p>
+
+  {!configured && <p class="notice">ANTHROPIC_API_KEY is not configured, so intake proposals are unavailable. Set it in the Netlify environment and redeploy.</p>}
+
+  <h2>Photographs</h2>
+  <form id="intakeform" class="stack">
+    <div class="field">
+      <label for="files">Photographs (JPEG or PNG, up to 4, front first)</label>
+      <input id="files" name="files" type="file" accept="image/jpeg,image/png" multiple required />
+    </div>
+    <div class="field">
+      <label for="hints">What you know (optional)</label>
+      <textarea id="hints" name="hints" placeholder="Bought from a dealer in Galveston; back is stamped 1904; relates to the seawall."></textarea>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" type="submit" id="proposebtn" disabled={!configured}>Propose Catalog Entry</button>
+      <span class="count" id="status"></span>
+    </div>
+  </form>
+
+  <div id="review" hidden>
+    <h2>Proposed Entry</h2>
+    <p class="lede" id="ainotes"></p>
+    <form id="commitform" class="stack">
+      <div class="fieldrow">
+        <div class="field">
+          <label for="accession">Accession</label>
+          <input id="accession" name="accession" required placeholder="GCC.1904.02" />
+          <span class="help">Assign the accession number yourself; the model does not choose it.</span>
+        </div>
+        <div class="field">
+          <label for="object_type">Object Type</label>
+          <select id="object_type" name="object_type">
+            {OBJECT_TYPES.map((t) => <option value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="title">Title</label>
+        <input id="title" name="title" required />
+      </div>
+      <div class="fieldrow">
+        <div class="field">
+          <label for="date_display">Date (display)</label>
+          <input id="date_display" name="date_display" />
+        </div>
+        <div class="field">
+          <label for="date_sort_year">Sort Year</label>
+          <input id="date_sort_year" name="date_sort_year" type="number" min="1500" max="2100" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="maker">Maker</label>
+        <input id="maker" name="maker" />
+      </div>
+      <div class="fieldrow">
+        <div class="field">
+          <label for="medium">Medium</label>
+          <input id="medium" name="medium" />
+        </div>
+        <div class="field">
+          <label for="room_id">Room (optional)</label>
+          <select id="room_id" name="room_id">
+            <option value="">Unplaced (catalog only)</option>
+            {rooms.map((r) => <option value={String(r.id)}>Room {r.numeral} · {r.title}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="meta">Meta Line</label>
+        <input id="meta" name="meta" />
+      </div>
+      <div class="field">
+        <label for="label">Draft Label</label>
+        <textarea id="label" name="label" style="min-height:180px;"></textarea>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" type="submit" id="commitbtn">Create Draft Piece</button>
+        <span class="count" id="commitstatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const intakeForm = document.getElementById('intakeform') as HTMLFormElement;
+    const filesInput = document.getElementById('files') as HTMLInputElement;
+    const hintsInput = document.getElementById('hints') as HTMLTextAreaElement;
+    const proposeBtn = document.getElementById('proposebtn') as HTMLButtonElement;
+    const statusEl = document.getElementById('status')!;
+    const review = document.getElementById('review')!;
+    const aiNotes = document.getElementById('ainotes')!;
+    const commitForm = document.getElementById('commitform') as HTMLFormElement;
+    const commitBtn = document.getElementById('commitbtn') as HTMLButtonElement;
+    const commitStatus = document.getElementById('commitstatus')!;
+
+    function setField(name: string, value: string | number | null) {
+      const el = commitForm.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      if (el) el.value = value === null || value === undefined ? '' : String(value);
+    }
+
+    intakeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!filesInput.files || filesInput.files.length === 0) return;
+      proposeBtn.disabled = true;
+      statusEl.textContent = 'Consulting the model. This can take up to a minute.';
+      try {
+        const body = new FormData();
+        for (const file of filesInput.files) body.append('files', file);
+        body.append('hints', hintsInput.value);
+        const res = await fetch('/api/admin/intake', { method: 'POST', body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+        const p = data.proposal;
+        setField('title', p.title);
+        setField('date_display', p.dateDisplay);
+        setField('date_sort_year', p.dateSortYear);
+        setField('maker', p.maker);
+        setField('medium', p.medium);
+        setField('object_type', p.objectType);
+        setField('meta', p.meta);
+        setField('label', p.label);
+        aiNotes.textContent = p.notes
+          ? `The model flagged for verification: ${p.notes}`
+          : 'Review every field before creating the draft; the proposal is a starting point, not a record.';
+        review.hidden = false;
+        statusEl.textContent = 'Proposal ready below.';
+        review.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        statusEl.textContent = err instanceof Error ? err.message : 'Intake failed.';
+      } finally {
+        proposeBtn.disabled = false;
+      }
+    });
+
+    commitForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      commitBtn.disabled = true;
+      commitStatus.textContent = 'Creating draft…';
+      try {
+        const body = new FormData(commitForm);
+        if (filesInput.files) {
+          for (const file of filesInput.files) body.append('files', file);
+        }
+        const res = await fetch('/api/admin/intake/commit', { method: 'POST', body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+        window.location.href = `/admin/pieces/${data.id}?saved=created`;
+      } catch (err) {
+        commitStatus.textContent = err instanceof Error ? err.message : 'Could not create the draft.';
+        commitBtn.disabled = false;
+      }
+    });
+  </script>
 </Admin>

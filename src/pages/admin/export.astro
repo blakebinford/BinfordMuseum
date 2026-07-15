@@ -1,10 +1,34 @@
 ---
 import Admin from '../../layouts/Admin.astro';
+import { sql } from 'drizzle-orm';
+import { getDb, tables } from '../../lib/db';
 
 export const prerender = false;
+
+const [counts] = await getDb()
+  .select({
+    pieces: sql<number>`count(*)::int`,
+    valued: sql<number>`count(*) filter (where exists (select 1 from ${tables.valuations} v where v.piece_id = ${tables.pieces.id}))::int`,
+    acquired: sql<number>`count(*) filter (where exists (select 1 from ${tables.acquisitions} a where a.piece_id = ${tables.pieces.id}))::int`,
+  })
+  .from(tables.pieces);
 ---
 
 <Admin title="Export" active="export">
   <h1>Export</h1>
-  <p class="lede">The insurance-schedule CSV export arrives in the next build phase.</p>
+  <p class="lede">
+    Download the full inventory as CSV, suitable for an insurance schedule: every piece with its catalog record,
+    acquisition data (date, source, price paid, provenance), the latest valuation per piece, and the latest condition
+    grade. AI-derived valuations are marked as estimates. The file contains private data; treat it accordingly.
+  </p>
+
+  <div class="statrow">
+    <div class="stat"><div class="n">{counts.pieces}</div><div class="t">Pieces</div></div>
+    <div class="stat"><div class="n">{counts.acquired}</div><div class="t">With Acquisition Data</div></div>
+    <div class="stat"><div class="n">{counts.valued}</div><div class="t">With Valuations</div></div>
+  </div>
+
+  <div class="btnrow" style="margin-top:36px;">
+    <a class="btn primary" href="/api/admin/export">Download Inventory CSV</a>
+  </div>
 </Admin>

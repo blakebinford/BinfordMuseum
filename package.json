@@ -17,6 +17,7 @@
     "hash-password": "node scripts/hash-password.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@astrojs/netlify": "^7.0.7",
     "@netlify/blobs": "^10.7.9",
     "@netlify/database": "^1.1.0",
