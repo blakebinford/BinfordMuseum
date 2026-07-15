@@ -24,13 +24,85 @@
 import { desc, eq } from 'drizzle-orm';
 import { getDb, tables } from '../../src/lib/db';
 import { verifyScopedToken } from '../../src/lib/auth';
-import { AiError, aiConfigured, researchValuation } from '../../src/lib/ai';
-import { writeAiStatus } from '../../src/lib/ai-status';
+import { AiError, aiConfigured, researchValuation, type PieceForValuation } from '../../src/lib/ai';
+import { isScoutRunId, scoutStatusKey, writeAiStatus, writeAiStatusKey } from '../../src/lib/ai-status';
+
+/**
+ * Scout runs (field companion): research a piece that is NOT in the catalog
+ * yet. Nothing is written to the database; the result rides in the status
+ * record the scout page polls. The piece description comes from the
+ * dispatcher, sanitized here to plain strings.
+ */
+async function runScout(runId: string, rawPiece: Record<string, unknown>): Promise<void> {
+  const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+  const piece: PieceForValuation = {
+    accession: 'scout run',
+    title: str(rawPiece.title) ?? 'Unidentified piece',
+    maker: str(rawPiece.maker),
+    dateDisplay: str(rawPiece.dateDisplay),
+    medium: str(rawPiece.medium),
+    dimensions: null,
+    objectType: str(rawPiece.objectType) ?? 'object',
+    meta: str(rawPiece.description),
+    conditionGrade: null,
+  };
+  try {
+    if (!aiConfigured()) {
+      await writeAiStatusKey(scoutStatusKey(runId), {
+        state: 'failed',
+        error: 'ai-config',
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+      });
+      return;
+    }
+    const research = await researchValuation(piece);
+    await writeAiStatusKey(scoutStatusKey(runId), {
+      state: 'done',
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      result: research,
+    });
+  } catch (err) {
+    const kind = err instanceof AiError ? err.kind : 'unexpected';
+    console.error('[ai-valuation-bg] scout run failed:', kind, err);
+    await writeAiStatusKey(scoutStatusKey(runId), {
+      state: 'failed',
+      error: err instanceof AiError && err.kind === 'config' ? 'ai-config' : 'ai-failed',
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+    }).catch((statusErr) => console.error('[ai-valuation-bg] could not record scout failure:', statusErr));
+  }
+}
 
 export default async (req: Request) => {
   let pieceId: number | null = null;
   try {
-    const body = (await req.json().catch(() => ({}))) as { pieceId?: unknown; token?: unknown };
+    const body = (await req.json().catch(() => ({}))) as {
+      pieceId?: unknown;
+      token?: unknown;
+      scout?: { runId?: unknown; piece?: unknown };
+    };
+
+    if (body.scout !== undefined) {
+      const runId = body.scout?.runId;
+      if (!isScoutRunId(runId)) {
+        console.warn('[ai-valuation-bg] scout invocation without a valid runId ignored');
+        return;
+      }
+      const token = typeof body.token === 'string' ? body.token : undefined;
+      if (!(await verifyScopedToken(token, `ai-valuation:scout-${runId}`, process.env.SESSION_SECRET))) {
+        console.warn('[ai-valuation-bg] invalid or expired scout run token; invocation ignored');
+        return;
+      }
+      const rawPiece =
+        body.scout && typeof body.scout.piece === 'object' && body.scout.piece !== null
+          ? (body.scout.piece as Record<string, unknown>)
+          : {};
+      await runScout(runId, rawPiece);
+      return;
+    }
+
     const id = Number(body.pieceId);
     if (!Number.isInteger(id) || id <= 0) {
       console.warn('[ai-valuation-bg] invocation without a valid pieceId ignored');

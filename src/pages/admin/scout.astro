@@ -1,0 +1,237 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { aiConfigured } from '../../lib/ai';
+
+export const prerender = false;
+
+const configured = aiConfigured();
+---
+
+<Admin title="Scout" active="scout">
+  <h1>Field Companion</h1>
+  <p class="lede">
+    At the dealer's table: photograph the piece, add the asking price if there is one, and get three
+    answers while you stand there: whether the collection already holds it, what comparable sales
+    suggest it is worth, and what it would add to the story. Nothing is saved unless you tap save.
+  </p>
+
+  {!configured && <p class="notice">ANTHROPIC_API_KEY is not configured, so the field companion is unavailable.</p>}
+
+  <form id="scoutform" class="stack" style="max-width:520px;">
+    <div class="field">
+      <label for="files">Photographs (up to 3)</label>
+      <input id="files" name="files" type="file" accept="image/jpeg,image/png" capture="environment" multiple required />
+    </div>
+    <div class="fieldrow">
+      <div class="field">
+        <label for="asking">Asking price (optional)</label>
+        <input id="asking" name="asking" inputmode="decimal" placeholder="$450" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="where">Where (optional)</label>
+        <input id="where" name="where" placeholder="Round Top; Smith Rare Maps booth" autocomplete="off" />
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" type="submit" id="gobtn" disabled={!configured}>Evaluate</button>
+      <span class="count" id="scoutstatus"></span>
+    </div>
+  </form>
+
+  <div id="results" hidden>
+    <div class="scoutcard" id="idcard">
+      <h3>Identification</h3>
+      <p class="body" id="idbody">Looking…</p>
+    </div>
+    <div class="scoutcard" id="dupcard">
+      <h3>Already in the collection?</h3>
+      <p class="body" id="dupbody">Checking the catalog…</p>
+      <div class="dupgrid" id="dupgrid"></div>
+    </div>
+    <div class="scoutcard" id="valcard">
+      <h3>Market comparables</h3>
+      <p class="body" id="valbody">Researching sales. This is the slow one; give it a few minutes.</p>
+      <ul class="comps" id="complist"></ul>
+    </div>
+    <div class="scoutcard" id="fitcard">
+      <h3>Fit</h3>
+      <p class="body" id="fitbody">Weighing it against the rooms…</p>
+    </div>
+    <div class="btnrow" style="margin-top:22px;">
+      <button class="btn primary" id="savebtn" disabled>Save as Prospect</button>
+      <span class="count" id="savestatus">Saves to the archive as a prospect: never public, never in the insurance export, convertible to a draft when purchased.</span>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('scoutform') as HTMLFormElement;
+    const filesInput = document.getElementById('files') as HTMLInputElement;
+    const askingInput = document.getElementById('asking') as HTMLInputElement;
+    const whereInput = document.getElementById('where') as HTMLInputElement;
+    const goBtn = document.getElementById('gobtn') as HTMLButtonElement;
+    const statusEl = document.getElementById('scoutstatus')!;
+    const results = document.getElementById('results')!;
+    const idBody = document.getElementById('idbody')!;
+    const dupBody = document.getElementById('dupbody')!;
+    const dupGrid = document.getElementById('dupgrid')!;
+    const valBody = document.getElementById('valbody')!;
+    const compList = document.getElementById('complist')!;
+    const fitBody = document.getElementById('fitbody')!;
+    const saveBtn = document.getElementById('savebtn') as HTMLButtonElement;
+    const saveStatus = document.getElementById('savestatus')!;
+
+    let runId = '';
+    let identification: Record<string, unknown> | null = null;
+    let fitNote = '';
+
+    const FAIL = 'Did not complete. It can be retried from a fresh evaluation.';
+    const money = (cents: number | null) =>
+      cents === null ? '?' : `$${Math.round(cents / 100).toLocaleString('en-US')}`;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!filesInput.files || filesInput.files.length === 0) return;
+      goBtn.disabled = true;
+      saveBtn.disabled = true;
+      dupBody.textContent = 'Checking the catalog…';
+      dupGrid.innerHTML = '';
+      valBody.textContent = 'Researching sales. This is the slow one; give it a few minutes.';
+      compList.innerHTML = '';
+      fitBody.textContent = 'Weighing it against the rooms…';
+      statusEl.textContent = 'Identifying…';
+      idBody.textContent = 'Looking…';
+      results.hidden = false;
+
+      try {
+        const body = new FormData();
+        for (const f of filesInput.files) body.append('files', f);
+        const res = await fetch('/api/admin/scout', { method: 'POST', body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+        runId = data.runId;
+        identification = data.identification;
+        const id = data.identification;
+        idBody.textContent = [
+          `${id.title}${id.dateDisplay ? `, ${id.dateDisplay}` : ''}`,
+          id.maker ? `Maker: ${id.maker}.` : '',
+          id.description,
+        ]
+          .filter(Boolean)
+          .join(' ');
+        statusEl.textContent = '';
+        runChecks();
+      } catch (err) {
+        statusEl.textContent = err instanceof Error ? err.message : 'Failed.';
+        idBody.textContent = FAIL;
+        goBtn.disabled = false;
+      }
+    });
+
+    function runChecks() {
+      // The three checks stream in as each completes.
+      const dup = (async () => {
+        const res = await fetch('/api/admin/scout/duplicates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, identification }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        const VERDICTS: Record<string, string> = {
+          likely_held: 'Likely already in the collection.',
+          possible_variant: 'A close variant may already be in the collection.',
+          not_held: 'Not in the collection.',
+        };
+        dupBody.textContent = `${VERDICTS[data.verdict] ?? data.verdict} ${data.explanation}`;
+        dupGrid.innerHTML = '';
+        for (const c of data.candidates) {
+          const a = document.createElement('a');
+          a.href = c.adminUrl;
+          a.target = '_blank';
+          a.className = 'dupcand';
+          const img = document.createElement('img');
+          if (c.thumb) img.src = c.thumb;
+          img.alt = c.title;
+          img.loading = 'lazy';
+          const cap = document.createElement('span');
+          cap.textContent = `${c.accession} · ${c.title}. ${c.note}`;
+          a.append(img, cap);
+          dupGrid.append(a);
+        }
+      })().catch(() => (dupBody.textContent = FAIL));
+
+      const val = (async () => {
+        const res = await fetch('/api/admin/scout/valuation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, identification }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        for (let i = 0; i < 90; i += 1) {
+          await new Promise((r) => setTimeout(r, 4000));
+          const poll = await fetch(`/api/admin/scout/valuation-status?run=${runId}`);
+          const s = await poll.json();
+          if (s.state === 'done' && s.result) {
+            const r = s.result;
+            valBody.textContent =
+              r.amountLowCents === null && r.amountHighCents === null
+                ? `No usable range. ${r.summary}`
+                : `Estimated ${money(r.amountLowCents)} to ${money(r.amountHighCents)}. ${r.summary} This is an AI estimate from comparable sales, not an appraisal.`;
+            compList.innerHTML = '';
+            for (const c of r.comparables ?? []) {
+              const li = document.createElement('li');
+              li.textContent = `${c.source}: ${c.description} ${c.price}${c.date ? ` (${c.date})` : ''}`;
+              compList.append(li);
+            }
+            return;
+          }
+          if (s.state === 'failed') throw new Error(s.error || 'failed');
+        }
+        throw new Error('timeout');
+      })().catch(() => (valBody.textContent = FAIL));
+
+      const fit = (async () => {
+        const res = await fetch('/api/admin/scout/fit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identification }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        fitNote = data.note;
+        fitBody.textContent = data.note;
+      })().catch(() => (fitBody.textContent = FAIL));
+
+      // Saving is allowed as soon as identification exists; the slow checks
+      // keep streaming in regardless.
+      saveBtn.disabled = false;
+      goBtn.disabled = false;
+      void Promise.allSettled([dup, val, fit]);
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveStatus.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/admin/scout/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            runId,
+            identification,
+            askingPrice: askingInput.value,
+            where: whereInput.value,
+            fitNote,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+        window.location.href = `/admin/pieces/${data.id}?saved=scouted`;
+      } catch (err) {
+        saveStatus.textContent = err instanceof Error ? err.message : 'Save failed.';
+        saveBtn.disabled = false;
+      }
+    });
+  </script>
+</Admin>

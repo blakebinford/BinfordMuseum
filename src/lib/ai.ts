@@ -328,6 +328,235 @@ export async function transcribeImages(images: IntakeImage[]): Promise<string> {
   return text;
 }
 
+// -------------------------------------------------------- field companion
+
+export interface ScoutIdentification {
+  title: string;
+  objectType: (typeof OBJECT_TYPES)[number];
+  dateDisplay: string | null;
+  maker: string | null;
+  medium: string | null;
+  description: string;
+}
+
+const SCOUT_ID_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'object_type', 'date_display', 'maker', 'medium', 'description'],
+  properties: {
+    title: { type: 'string', description: 'Short working title for the piece.' },
+    object_type: { type: 'string', enum: [...OBJECT_TYPES] },
+    date_display: nullable({ type: 'string', description: 'Date or range if identifiable, e.g. "c. 1900".' }),
+    maker: nullable({ type: 'string' }),
+    medium: nullable({ type: 'string' }),
+    description: { type: 'string', description: 'One plain sentence saying what the object is.' },
+  },
+} as const;
+
+/** Quick identification of a piece at a dealer's table, from photographs. */
+export async function scoutIdentify(images: IntakeImage[]): Promise<ScoutIdentification> {
+  if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
+
+  const system = [
+    `You are the field companion for ${SITE_NAME}, a private collection of Texana. The owner is at a dealer's table or auction preview and photographed a piece under consideration.`,
+    'Identify the piece quickly and plainly from the photographs: what it is, roughly when, who made or issued it if evident. This is a fast read, not a catalog entry; leave anything uncertain null rather than guessing specifics.',
+    'Never use em dashes.',
+  ].join('\n\n');
+
+  const content: Anthropic.ContentBlockParam[] = [
+    ...images.map((img): Anthropic.ImageBlockParam => ({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
+    })),
+    { type: 'text', text: 'Identify this piece.' },
+  ];
+
+  let response: Anthropic.Message;
+  try {
+    response = await getClient().messages.create({
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.scoutIdentify.maxTokens,
+      system,
+      messages: [{ role: 'user', content }],
+      output_config: {
+        effort: AI_LIMITS.scoutIdentify.effort,
+        format: { type: 'json_schema', schema: SCOUT_ID_SCHEMA },
+      },
+    });
+  } catch (err) {
+    throw toAiError(err);
+  }
+  if (response.stop_reason === 'refusal') throw new AiError('The model declined this request.', 'refusal');
+  const parsed = parseJsonText(response);
+  return {
+    title: stripEmDashes(String(parsed.title ?? '')) || 'Unidentified piece',
+    objectType: OBJECT_TYPES.includes(parsed.object_type) ? parsed.object_type : 'object',
+    dateDisplay: optionalString(parsed.date_display),
+    maker: optionalString(parsed.maker),
+    medium: optionalString(parsed.medium),
+    description: stripEmDashes(String(parsed.description ?? '')),
+  };
+}
+
+export interface ScoutDuplicateCheck {
+  verdict: 'likely_held' | 'possible_variant' | 'not_held';
+  explanation: string;
+  candidates: Array<{ accession: string; note: string }>;
+}
+
+const SCOUT_DUP_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['verdict', 'explanation', 'candidates'],
+  properties: {
+    verdict: {
+      type: 'string',
+      enum: ['likely_held', 'possible_variant', 'not_held'],
+      description: 'Whether the collection already holds this piece or a close variant.',
+    },
+    explanation: { type: 'string', description: 'One or two plain sentences supporting the verdict.' },
+    candidates: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['accession', 'note'],
+        properties: {
+          accession: { type: 'string' },
+          note: { type: 'string', description: 'Why this catalog piece is a plausible match, one sentence.' },
+        },
+      },
+    },
+  },
+} as const;
+
+/**
+ * Duplicate check: the photographs and quick identification against the
+ * catalog's text. Returns a plain verdict plus plausible matches (the UI
+ * shows their thumbnails).
+ */
+export async function scoutDuplicates(
+  images: IntakeImage[],
+  identification: ScoutIdentification,
+  catalog: Array<{ accession: string; title: string; objectType: string; label: string }>,
+): Promise<ScoutDuplicateCheck> {
+  if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
+
+  const system = [
+    `You check whether ${SITE_NAME}, a private collection of Texana, already holds a piece the owner is considering buying.`,
+    'You are given photographs of the candidate piece, a quick identification, and the catalog (accessions, titles, object types, labels). Answer plainly whether the collection already holds this piece or a close variant: the same map in another edition, the same view from another publisher, the same issue of currency.',
+    'List the catalog pieces that are plausible matches with a one-sentence note each. If nothing is close, say so and return an empty list. Never use em dashes.',
+  ].join('\n\n');
+
+  const catalogText = catalog
+    .map((p) => `${p.accession} · ${p.title} (${p.objectType})\n${p.label}`)
+    .join('\n\n');
+
+  const content: Anthropic.ContentBlockParam[] = [
+    ...images.map((img): Anthropic.ImageBlockParam => ({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
+    })),
+    {
+      type: 'text',
+      text: `Candidate piece identification:\n${JSON.stringify(identification)}\n\nCatalog:\n\n${catalogText}\n\nDoes the collection already hold this piece or a close variant?`,
+    },
+  ];
+
+  let response: Anthropic.Message;
+  try {
+    response = await getClient().messages.create({
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.scoutDuplicates.maxTokens,
+      system,
+      messages: [{ role: 'user', content }],
+      output_config: {
+        effort: AI_LIMITS.scoutDuplicates.effort,
+        format: { type: 'json_schema', schema: SCOUT_DUP_SCHEMA },
+      },
+    });
+  } catch (err) {
+    throw toAiError(err);
+  }
+  if (response.stop_reason === 'refusal') throw new AiError('The model declined this request.', 'refusal');
+  const parsed = parseJsonText(response);
+
+  const known = new Set(catalog.map((p) => p.accession));
+  const verdicts = ['likely_held', 'possible_variant', 'not_held'] as const;
+  return {
+    verdict: verdicts.includes(parsed.verdict) ? parsed.verdict : 'not_held',
+    explanation: stripEmDashes(String(parsed.explanation ?? '')),
+    candidates: (Array.isArray(parsed.candidates) ? parsed.candidates : [])
+      .filter((c: Record<string, unknown>) => known.has(String(c?.accession ?? '')))
+      .slice(0, 4)
+      .map((c: Record<string, unknown>) => ({
+        accession: String(c.accession),
+        note: stripEmDashes(String(c.note ?? '')),
+      })),
+  };
+}
+
+const SCOUT_FIT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['note'],
+  properties: {
+    note: {
+      type: 'string',
+      description: 'One short paragraph on what the piece adds to or duplicates in the collection story.',
+    },
+  },
+} as const;
+
+/**
+ * Fit note: one short paragraph on what the piece would add to (or
+ * duplicate in) the collection's story, referencing rooms and existing
+ * accessions, in the collection's voice.
+ */
+export async function scoutFit(
+  identification: ScoutIdentification,
+  rooms: Array<{ numeral: string; title: string; wallText: string }>,
+  catalog: Array<{ accession: string; title: string; objectType: string }>,
+  voiceExamples: string[],
+): Promise<string> {
+  if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
+
+  const system = [
+    `You are the curator of ${SITE_NAME}, a private collection of Texana, advising the owner at a dealer's table.`,
+    'Write ONE short paragraph on what the candidate piece would add to the collection story, or what it would duplicate. Reference specific rooms and existing accession numbers. Be honest when it adds little.',
+    'Match the register of these existing labels:',
+    ...voiceExamples.map((label, i) => `<label_example index="${i + 1}">\n${label}\n</label_example>`),
+    'Never use em dashes. No preamble; the paragraph only.',
+  ].join('\n\n');
+
+  const roomsText = rooms.map((r) => `Room ${r.numeral}: ${r.title}\n${r.wallText}`).join('\n\n');
+  const catalogText = catalog.map((p) => `${p.accession} · ${p.title} (${p.objectType})`).join('\n');
+
+  let response: Anthropic.Message;
+  try {
+    response = await getClient().messages.create({
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.scoutFit.maxTokens,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `Candidate piece:\n${JSON.stringify(identification)}\n\nThe rooms:\n\n${roomsText}\n\nThe catalog:\n${catalogText}\n\nWhat does this piece add?`,
+        },
+      ],
+      output_config: {
+        effort: AI_LIMITS.scoutFit.effort,
+        format: { type: 'json_schema', schema: SCOUT_FIT_SCHEMA },
+      },
+    });
+  } catch (err) {
+    throw toAiError(err);
+  }
+  if (response.stop_reason === 'refusal') throw new AiError('The model declined this request.', 'refusal');
+  const parsed = parseJsonText(response);
+  return stripEmDashes(String(parsed.note ?? ''));
+}
+
 // ---------------------------------------------------------------- valuation
 
 export interface ValuationResearch {
