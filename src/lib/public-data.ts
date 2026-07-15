@@ -170,16 +170,48 @@ async function fromSeedFile(): Promise<PublicCollection> {
 let cached: PublicCollection | null = null;
 
 /**
+ * Netlify Database applies migrations after the build, immediately before a
+ * deploy is published. On the very first deploy (and on a deploy preview
+ * branched before production was seeded) the database is therefore reachable
+ * but has no tables yet when the build's prerender queries run. That exact
+ * state surfaces as Postgres error 42P01 (undefined_table), possibly wrapped
+ * by the driver or Drizzle.
+ */
+function isNotYetMigrated(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    const code = (current as Error & { code?: unknown }).code;
+    if (code === '42P01') return true;
+    if (/relation "[^"]+" does not exist/.test(current.message)) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
  * Public collection for build-time rendering. Uses the Netlify Database when
  * a connection is present (always the case on Netlify once the database is
- * provisioned); on a Netlify build with no database it fails the build
- * rather than silently shipping stale content. Offline local builds fall
- * back to the committed seed extraction.
+ * provisioned). Two narrow fallbacks build from the committed seed
+ * extraction instead: offline local builds with no NETLIFY_DB_URL, and the
+ * first-deploy bootstrap where the database exists but its migrations have
+ * not yet been applied (they run at the end of that same deploy; the seed
+ * file and the seed migration carry identical content, so the published
+ * output is correct either way). Anything else, including an unreachable
+ * database, still fails the build rather than shipping stale content.
  */
 export async function getPublicCollection(): Promise<PublicCollection> {
   if (cached) return cached;
   if (process.env.NETLIFY_DB_URL) {
-    cached = await fromDatabase();
+    try {
+      cached = await fromDatabase();
+    } catch (err) {
+      if (!isNotYetMigrated(err)) throw err;
+      console.warn(
+        '[public-data] Database is reachable but not yet migrated (expected on the first deploy). ' +
+          'Building from the committed seed; migrations apply at the end of this deploy and the next build reads the database.',
+      );
+      cached = await fromSeedFile();
+    }
   } else if (process.env.NETLIFY === 'true') {
     throw new Error(
       'Netlify build has no NETLIFY_DB_URL. Netlify Database is not provisioned; refusing to build public pages from the seed file.',
