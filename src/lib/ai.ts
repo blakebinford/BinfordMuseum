@@ -208,6 +208,8 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
   ];
 
   // Server-side web search loop; resume on pause_turn per current docs.
+  // Medium effort keeps the search loop well inside Netlify's 60-second
+  // synchronous function limit without changing the research instructions.
   let response: Anthropic.Message;
   try {
     response = await client.messages.create({
@@ -215,6 +217,7 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
       max_tokens: 8000,
       system: researchSystem,
       messages,
+      output_config: { effort: 'medium' },
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
     });
     let continuations = 0;
@@ -225,6 +228,7 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
         max_tokens: 8000,
         system: researchSystem,
         messages,
+        output_config: { effort: 'medium' },
         tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
       });
       continuations += 1;
@@ -271,7 +275,7 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
           content: `Research notes:\n\n${researchText}\n\nSource URLs seen during research:\n${sourceList || '(none)'}`,
         },
       ],
-      output_config: { format: { type: 'json_schema', schema: VALUATION_SCHEMA } },
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: VALUATION_SCHEMA } },
     });
   } catch (err) {
     throw toAiError(err);
