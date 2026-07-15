@@ -236,6 +236,27 @@ export type NewPiece = typeof pieces.$inferInsert;
 export type PieceImage = typeof pieceImages.$inferSelect;
 export type Acquisition = typeof acquisitions.$inferSelect;
 export type Valuation = typeof valuations.$inferSelect;
+// Ask-the-curator log: every public question and its answer, with token
+// usage. Doubles as the durable rate-limit and monthly-spend ledger, and
+// shows the owner what visitors ask.
+export const curatorQuestions = pgTable(
+  'curator_questions',
+  {
+    id: serial().primaryKey(),
+    visitorId: text('visitor_id').notNull(),
+    ip: text().notNull(),
+    question: text().notNull(),
+    answer: text().notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('curator_questions_created_idx').on(table.createdAt)],
+);
+
 export type ConditionReport = typeof conditionReports.$inferSelect;
 export type ResearchNote = typeof researchNotes.$inferSelect;
 export type PieceLink = typeof pieceLinks.$inferSelect;
+export type CuratorQuestion = typeof curatorQuestions.$inferSelect;

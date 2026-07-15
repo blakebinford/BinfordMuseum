@@ -145,6 +145,26 @@ const roomsWithPieces = rooms.map((room) => ({
       <div class="exitlinks">
         <a href="/catalog/">Browse the Catalog</a>
       </div>
+
+      <div class="curator" id="curator">
+        <div class="rule"></div>
+        <h2>Ask the Curator</h2>
+        <p class="curator-sub">
+          A question about the pieces, the rooms, or the history they witnessed. Answers come only from
+          the collection's own records.
+        </p>
+        <form id="curatorform">
+          <textarea
+            id="curatorq"
+            maxlength="500"
+            rows="2"
+            placeholder="Why does the collection begin with a treasury warrant?"
+            required></textarea>
+          <button type="submit" id="curatorbtn">Ask</button>
+        </form>
+        <p class="curator-answer" id="curatoranswer" hidden></p>
+      </div>
+
       <p class="colophon">{exit.colophon}</p>
     </div>
   </section>
@@ -275,6 +295,62 @@ const roomsWithPieces = rooms.map((room) => ({
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeLB();
+    });
+
+    // Ask the curator: one question, one answer, no memory. Accession
+    // numbers in the answer become links to piece pages.
+    const curatorForm = document.getElementById('curatorform') as HTMLFormElement;
+    const curatorQ = document.getElementById('curatorq') as HTMLTextAreaElement;
+    const curatorBtn = document.getElementById('curatorbtn') as HTMLButtonElement;
+    const curatorAnswer = document.getElementById('curatoranswer') as HTMLParagraphElement;
+
+    function renderAnswer(text: string, accessions: string[]) {
+      curatorAnswer.textContent = '';
+      const pattern = accessions.length
+        ? new RegExp(`(${accessions.map((a) => a.replace(/\./g, '\\.')).join('|')})`, 'g')
+        : null;
+      for (const part of pattern ? text.split(pattern) : [text]) {
+        if (pattern && accessions.includes(part)) {
+          const a = document.createElement('a');
+          a.href = `/piece/${part}/`;
+          a.textContent = part;
+          curatorAnswer.append(a);
+        } else {
+          curatorAnswer.append(document.createTextNode(part));
+        }
+      }
+      curatorAnswer.hidden = false;
+    }
+
+    curatorForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const question = curatorQ.value.trim();
+      if (question.length < 3) return;
+      curatorBtn.disabled = true;
+      curatorAnswer.hidden = false;
+      curatorAnswer.textContent = 'The curator is thinking…';
+      try {
+        const res = await fetch('/api/curator/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+        if (data.closed) {
+          curatorAnswer.textContent =
+            'The curator has answered a full month of questions and will return when the month turns.';
+        } else if (res.status === 429) {
+          curatorAnswer.textContent = 'That is the last question for today. The rooms will still be here tomorrow.';
+        } else if (!res.ok) {
+          curatorAnswer.textContent = 'The curator is unavailable right now. Try again in a little while.';
+        } else {
+          renderAnswer(data.answer, data.accessions ?? []);
+        }
+      } catch {
+        curatorAnswer.textContent = 'The curator is unavailable right now. Try again in a little while.';
+      } finally {
+        curatorBtn.disabled = false;
+      }
     });
   </script>
 </Base>

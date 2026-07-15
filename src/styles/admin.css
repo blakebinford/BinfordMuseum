@@ -80,3 +80,9 @@ form.stack { display:flex; flex-direction:column; gap:18px; max-width:640px; mar
 .dupcand { display:block; text-decoration:none; color:var(--body); font-size:12.5px; line-height:1.5; }
 .dupcand img { width:100%; height:auto; display:block; border:1px solid var(--line); margin-bottom:8px; }
 .dupcand:hover { color:var(--paper); }
+
+/* Visitor question log. */
+.qrow { padding:16px 0; border-bottom:1px solid var(--line); max-width:760px; }
+.qrow .qmeta { font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.qrow .q { margin-top:8px; font-size:14px; color:var(--paper); line-height:1.6; }
+.qrow .a { margin-top:8px; font-size:13.5px; color:var(--body); line-height:1.7; border-left:1px solid var(--line); padding-left:14px; }
