@@ -118,8 +118,12 @@ export default async (req: Request) => {
   }
 };
 
+// Background mode is declared three ways so any one of them suffices: the
+// -background filename suffix (the original, most widely supported signal),
+// config.background here, and a [functions] block in netlify.toml. A run
+// observed in production was cut at exactly 60 seconds, the synchronous
+// limit, meaning in-source config.background alone was not honored.
 export const config = {
   background: true,
   path: '/background/ai-valuation',
-  method: 'POST',
 };

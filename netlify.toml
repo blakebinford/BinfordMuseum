@@ -11,3 +11,10 @@
   # build hook URL) must be set in the Netlify UI or CLI so Functions receive
   # them. See README.
   NODE_VERSION = "22.22.2"
+
+# AI valuation research worker: must run as a background function (15-minute
+# budget); the synchronous 60-second limit kills real web-search research.
+# Declared here in addition to the -background filename suffix and the
+# function's in-source config.background.
+[functions.ai-valuation-background]
+  background = true
