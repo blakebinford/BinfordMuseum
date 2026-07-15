@@ -220,10 +220,10 @@ const chart = (() => {
 
   <h2>Valuations</h2>
   <div class="btnrow">
-    <form method="post" action={`/api/admin/pieces/${piece.id}/valuations/ai`}>
-      <button class="btn primary" type="submit">Run AI Valuation Research</button>
-    </form>
-    <span class="count">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Takes up to a minute; the result is an estimate.</span>
+    <button class="btn primary" type="button" id="aival" data-url={`/api/admin/pieces/${piece.id}/valuations/ai`}>
+      Run AI Valuation Research
+    </button>
+    <span class="count" id="aistatus">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Takes up to a minute; the result is an estimate.</span>
   </div>
   {
     chart && (
@@ -412,4 +412,37 @@ const chart = (() => {
   <form method="post" action={`/api/admin/pieces/${piece.id}/delete`} onsubmit="return confirm('Delete this piece and all of its records?');">
     <div class="btnrow"><button class="btn danger" type="submit">Delete Piece</button></div>
   </form>
+
+  <script>
+    // AI valuation runs over a streamed response (heartbeats while the
+    // research executes), so it is driven by fetch rather than a form post.
+    const aiBtn = document.getElementById('aival') as HTMLButtonElement | null;
+    const aiStatus = document.getElementById('aistatus');
+    if (aiBtn) {
+      aiBtn.addEventListener('click', async () => {
+        aiBtn.disabled = true;
+        if (aiStatus) {
+          aiStatus.textContent = 'Researching comparable sales. This can take up to a minute; keep this page open.';
+        }
+        try {
+          const res = await fetch(aiBtn.dataset.url!, { method: 'POST' });
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          const text = await res.text();
+          const lines = text.trim().split('\n').filter((line) => line && line !== 'working');
+          const result = JSON.parse(lines[lines.length - 1] ?? '{}');
+          if (result.done) {
+            window.location.href = `${window.location.pathname}?saved=ai-valuation`;
+          } else {
+            window.location.href = `${window.location.pathname}?error=${result.error || 'ai-failed'}`;
+          }
+        } catch {
+          if (aiStatus) {
+            aiStatus.textContent =
+              'The research did not complete. Reload to see whether a valuation was saved, then try again.';
+          }
+          aiBtn.disabled = false;
+        }
+      });
+    }
+  </script>
 </Admin>
