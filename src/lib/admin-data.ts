@@ -83,6 +83,11 @@ export async function listPieces() {
       roomNumeral: rooms.numeral,
       imageCount: sql<number>`(select count(*) from ${pieceImages} where ${pieceImages.pieceId} = ${pieces.id})::int`,
       updatedAt: pieces.updatedAt,
+      label: pieces.label,
+      // Admin search includes transcriptions regardless of the public flag.
+      transcription: pieces.transcription,
+      hasTranscription: sql<boolean>`${pieces.transcription} is not null`,
+      transcriptionReviewed: pieces.transcriptionReviewed,
     })
     .from(pieces)
     .leftJoin(rooms, eq(pieces.roomId, rooms.id))

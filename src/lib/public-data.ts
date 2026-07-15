@@ -9,7 +9,7 @@
  * `provenance_text` alone.
  */
 
-import { asc, eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, tables } from './db';
 
 export interface PublicRoom {
@@ -43,6 +43,8 @@ export interface PublicPiece {
   roomId: number | null;
   roomOrder: number | null;
   label: string;
+  /** Present only when the owner marked the transcription reviewed AND public. */
+  transcription: string | null;
   publicProvenance: string | null;
   images: PublicImage[];
 }
@@ -83,6 +85,10 @@ async function fromDatabase(): Promise<PublicCollection> {
       roomId: pieces.roomId,
       roomOrder: pieces.roomOrder,
       label: pieces.label,
+      // The transcription reaches a public surface only when the owner
+      // reviewed it AND flagged it public; enforced in the query itself so
+      // unapproved text never leaves the database on this path.
+      transcription: sql<string | null>`case when ${pieces.transcriptionPublic} and ${pieces.transcriptionReviewed} then ${pieces.transcription} else null end`,
     })
     .from(pieces)
     // Only published pieces, ever. Drafts and prospects (field-companion
@@ -164,6 +170,7 @@ async function fromSeedFile(): Promise<PublicCollection> {
         roomId: p.roomId,
         roomOrder: p.roomOrder,
         label: p.label,
+        transcription: null,
         publicProvenance: null,
         images: p.images as PublicImage[],
       })),

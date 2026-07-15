@@ -1,6 +1,8 @@
 /**
- * AI features: intake proposals (vision) and valuation research (web search),
- * both on the current Claude Sonnet model via the owner's ANTHROPIC_API_KEY.
+ * AI features: intake proposals (vision), document transcription (vision),
+ * and valuation research (web search), all on the current Claude Sonnet
+ * model via the owner's ANTHROPIC_API_KEY. Model name and per-call limits
+ * live in src/lib/ai-config.ts.
  *
  * Verified against current Anthropic docs (July 2026): claude-sonnet-5 is the
  * current Sonnet; adaptive thinking is its default (no thinking config sent);
@@ -12,8 +14,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { SITE_NAME } from './site';
-
-export const SONNET = 'claude-sonnet-5';
+import { AI_LIMITS, AI_MODEL } from './ai-config';
 
 let client: Anthropic | null = null;
 
@@ -106,8 +107,8 @@ export async function proposeIntake(
   let response: Anthropic.Message;
   try {
     response = await getClient().messages.create({
-      model: SONNET,
-      max_tokens: 3000,
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.intake.maxTokens,
       system,
       messages: [{ role: 'user', content }],
       output_config: { format: { type: 'json_schema', schema: INTAKE_SCHEMA } },
@@ -131,6 +132,58 @@ export async function proposeIntake(
     label: stripEmDashes(String(parsed.label ?? '')),
     notes: stripEmDashes(String(parsed.notes ?? '')),
   };
+}
+
+// ------------------------------------------------------------ transcription
+
+/**
+ * Complete transcription of all text visible in the photographs: printed,
+ * manuscript, signatures, stamps, marginalia. Square-bracket conventions for
+ * uncertainty. The output reproduces the object's own text, so unlike every
+ * other generated field it is NOT passed through the em dash strip: an em
+ * dash printed on an 1880s certificate belongs in its transcription.
+ */
+export async function transcribeImages(images: IntakeImage[]): Promise<string> {
+  if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
+
+  const system = [
+    'You transcribe text from photographs of objects in a private Texana collection: documents, currency, certificates, newspapers, maps, photograph versos, and similar historical material.',
+    'Produce a complete transcription of all text on the object: printed text, manuscript text, signatures, stamps, and marginalia.',
+    'Conventions: write [illegible] for passages you cannot read, and put [?] immediately after a doubtful reading. Preserve original spelling, capitalization, and punctuation exactly; do not modernize, correct, or summarize. Preserve line breaks where they carry meaning, as on certificates, banknotes, letterheads, and inscriptions.',
+    'When the photographs show distinct regions of text (the back of a card, a stamp, a margin note, a caption), introduce each region on its own line in square brackets, for example [verso], [stamp], [margin, in pencil].',
+    'If the photographs show no legible text at all, output exactly [no text].',
+    'Output only the transcription. No preamble, no commentary, no closing remarks.',
+  ].join('\n\n');
+
+  const content: Anthropic.ContentBlockParam[] = [
+    ...images.map((img): Anthropic.ImageBlockParam => ({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
+    })),
+    { type: 'text', text: 'Transcribe all text on this object.' },
+  ];
+
+  let response: Anthropic.Message;
+  try {
+    response = await getClient().messages.create({
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.transcription.maxTokens,
+      system,
+      messages: [{ role: 'user', content }],
+      output_config: { effort: AI_LIMITS.transcription.effort },
+    });
+  } catch (err) {
+    throw toAiError(err);
+  }
+  if (response.stop_reason === 'refusal') throw new AiError('The model declined this request.', 'refusal');
+
+  const text = response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
+    .trim();
+  if (!text) throw new AiError('The model returned an empty transcription.', 'shape');
+  return text;
 }
 
 // ---------------------------------------------------------------- valuation
@@ -209,29 +262,21 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
   ];
 
   // Server-side web search loop; resume on pause_turn per current docs.
-  // Medium effort keeps the search loop well inside Netlify's 60-second
-  // synchronous function limit without changing the research instructions.
+  const research = AI_LIMITS.valuationResearch;
+  const researchParams = {
+    model: AI_MODEL,
+    max_tokens: research.maxTokens,
+    system: researchSystem,
+    output_config: { effort: research.effort },
+    tools: [{ type: 'web_search_20260209' as const, name: 'web_search', max_uses: research.webSearchMaxUses }],
+  };
   let response: Anthropic.Message;
   try {
-    response = await client.messages.create({
-      model: SONNET,
-      max_tokens: 8000,
-      system: researchSystem,
-      messages,
-      output_config: { effort: 'medium' },
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
-    });
+    response = await client.messages.create({ ...researchParams, messages });
     let continuations = 0;
-    while (response.stop_reason === 'pause_turn' && continuations < 3) {
+    while (response.stop_reason === 'pause_turn' && continuations < research.maxContinuations) {
       messages.push({ role: 'assistant', content: response.content });
-      response = await client.messages.create({
-        model: SONNET,
-        max_tokens: 8000,
-        system: researchSystem,
-        messages,
-        output_config: { effort: 'medium' },
-        tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
-      });
+      response = await client.messages.create({ ...researchParams, messages });
       continuations += 1;
     }
   } catch (err) {
@@ -266,8 +311,8 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
   let extraction: Anthropic.Message;
   try {
     extraction = await client.messages.create({
-      model: SONNET,
-      max_tokens: 2500,
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.valuationExtraction.maxTokens,
       system:
         'Extract a structured valuation record from the research notes. Include only comparables actually mentioned, with their URLs taken from the source list. At most 6 comparables. Amounts in USD. Never use em dashes.',
       messages: [
@@ -276,7 +321,10 @@ export async function researchValuation(piece: PieceForValuation): Promise<Valua
           content: `Research notes:\n\n${researchText}\n\nSource URLs seen during research:\n${sourceList || '(none)'}`,
         },
       ],
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: VALUATION_SCHEMA } },
+      output_config: {
+        effort: AI_LIMITS.valuationExtraction.effort,
+        format: { type: 'json_schema', schema: VALUATION_SCHEMA },
+      },
     });
   } catch (err) {
     throw toAiError(err);

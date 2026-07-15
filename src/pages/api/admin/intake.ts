@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { asc, eq } from 'drizzle-orm';
 import { getDb, tables } from '../../../lib/db';
-import { AiError, aiConfigured, proposeIntake, type IntakeImage } from '../../../lib/ai';
+import { AiError, aiConfigured, proposeIntake, transcribeImages, type IntakeImage } from '../../../lib/ai';
 import { MAX_UPLOAD_BYTES } from '../../../lib/piece-images';
 import { sniffImage } from '../../../lib/image-size';
 
@@ -54,8 +54,17 @@ export const POST: APIRoute = async ({ request }) => {
     .slice(0, 6);
 
   try {
-    const proposal = await proposeIntake(images, hints, voice);
-    return new Response(JSON.stringify({ proposal }), {
+    // Transcription runs in parallel with the proposal (same photographs,
+    // independent calls). A transcription failure does not fail intake; the
+    // owner can run it again from the piece page after committing.
+    const [proposal, transcription] = await Promise.all([
+      proposeIntake(images, hints, voice),
+      transcribeImages(images).catch((err) => {
+        console.warn('[intake] transcription failed (continuing without it):', err);
+        return null;
+      }),
+    ]);
+    return new Response(JSON.stringify({ proposal, transcription }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {

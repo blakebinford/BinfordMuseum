@@ -77,6 +77,13 @@ export const pieces = pgTable(
     roomOrder: integer('room_order'),
     label: text().notNull().default(''),
     status: pieceStatusEnum().notNull().default('draft'),
+    // Complete transcription of text on the object ([illegible] and [?]
+    // conventions). AI output starts unreviewed; the owner reviews and edits
+    // before it counts as approved. Public display additionally requires the
+    // explicit per-piece flag, default off.
+    transcription: text(),
+    transcriptionReviewed: boolean('transcription_reviewed').notNull().default(false),
+    transcriptionPublic: boolean('transcription_public').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

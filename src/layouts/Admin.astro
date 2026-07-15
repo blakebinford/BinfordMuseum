@@ -5,7 +5,7 @@ import { SITE_NAME } from '../lib/site';
 
 interface Props {
   title: string;
-  active?: 'dashboard' | 'pieces' | 'intake' | 'export';
+  active?: 'dashboard' | 'pieces' | 'intake' | 'transcriptions' | 'export';
 }
 
 const { title, active } = Astro.props;
@@ -32,6 +32,7 @@ const { title, active } = Astro.props;
         <a href="/admin" aria-current={active === 'dashboard' ? 'page' : undefined}>Dashboard</a>
         <a href="/admin/pieces" aria-current={active === 'pieces' ? 'page' : undefined}>Pieces</a>
         <a href="/admin/intake" aria-current={active === 'intake' ? 'page' : undefined}>Intake</a>
+        <a href="/admin/transcriptions" aria-current={active === 'transcriptions' ? 'page' : undefined}>Transcriptions</a>
         <a href="/admin/export" aria-current={active === 'export' ? 'page' : undefined}>Export</a>
         <a href="/" target="_blank" rel="noopener">Public Site</a>
         <form method="post" action="/api/admin/logout"><button type="submit">Log Out</button></form>

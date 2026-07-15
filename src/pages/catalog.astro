@@ -34,7 +34,9 @@ const cards = pieces.map((piece) => {
     front,
     room,
     decade: decadeOf(piece.dateSortYear),
-    search: `${piece.accession} ${piece.title} ${piece.label}`.toLowerCase(),
+    // Public transcriptions (reviewed + flagged public; the data layer nulls
+    // everything else) are searchable alongside titles and labels.
+    search: `${piece.accession} ${piece.title} ${piece.label} ${piece.transcription ?? ''}`.toLowerCase(),
   };
 });
 

@@ -94,6 +94,25 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
         <label for="label">Draft Label</label>
         <textarea id="label" name="label" style="min-height:180px;"></textarea>
       </div>
+      <div class="field">
+        <label for="transcription">Transcription</label>
+        <textarea
+          id="transcription"
+          name="transcription"
+          style="min-height:160px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;"
+        ></textarea>
+        <span class="help">
+          All text on the object as the model read it: [illegible] marks unreadable passages, [?] follows
+          doubtful readings. Correct it against the photographs; it stays private until you make it public
+          on the piece page.
+        </span>
+      </div>
+      <div class="field">
+        <label style="display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" name="transcription_reviewed" value="true" style="width:auto;" />
+          I have reviewed the transcription against the object
+        </label>
+      </div>
       <div class="btnrow">
         <button class="btn primary" type="submit" id="commitbtn">Create Draft Piece</button>
         <span class="count" id="commitstatus"></span>
@@ -139,6 +158,7 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
         setField('object_type', p.objectType);
         setField('meta', p.meta);
         setField('label', p.label);
+        setField('transcription', data.transcription ?? '');
         aiNotes.textContent = p.notes
           ? `The model flagged for verification: ${p.notes}`
           : 'Review every field before creating the draft; the proposal is a starting point, not a record.';

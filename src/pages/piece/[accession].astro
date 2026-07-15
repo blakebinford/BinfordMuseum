@@ -105,6 +105,15 @@ if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenanc
     </div>
 
     {
+      piece.transcription && (
+        <section class="transcription">
+          <h2>Transcription</h2>
+          <pre>{piece.transcription}</pre>
+        </section>
+      )
+    }
+
+    {
       (back || details.length > 0) && (
         <div class="actionsrow">
           {back && <button id="flip">Turn Over</button>}

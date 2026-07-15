@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { getDb, tables } from '../../../../lib/db';
+import { formStr } from '../../../../lib/admin-data';
 import { parsePieceForm } from '../../../../lib/piece-form';
 import { saveImageForPiece } from '../../../../lib/piece-images';
 
@@ -31,9 +32,15 @@ export const POST: APIRoute = async ({ request }) => {
     .limit(1);
   if (clash.length > 0) return jsonError(409, 'That accession number is already in use.');
 
+  // The intake transcription (edited by the owner in the review form) lands
+  // on the draft. Public display stays off; that is a separate decision on
+  // the piece page.
+  const transcription = formStr(form, 'transcription');
+  const transcriptionReviewed = form.get('transcription_reviewed') === 'true' && transcription !== null;
+
   const [created] = await db
     .insert(tables.pieces)
-    .values({ ...values, status: 'draft' })
+    .values({ ...values, status: 'draft', transcription, transcriptionReviewed })
     .returning({ id: tables.pieces.id, accession: tables.pieces.accession, title: tables.pieces.title });
 
   const files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
