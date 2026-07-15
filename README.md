@@ -55,7 +55,7 @@ The database connection (`NETLIFY_DB_URL`) is provisioned and injected by the pl
 2. In Netlify, **Add new project → Import an existing project**, pick the repo. Build settings are read from `netlify.toml` (command `npm run build`, publish `dist`).
 3. Confirm the team is on a credit-based plan that supports Netlify Database (see plan note above).
 4. Set the environment variables listed above.
-5. First deploy. The presence of `@netlify/database` provisions the database, and migrations in `netlify/database/migrations` (schema + seed rows) apply automatically before the deploy is published.
+5. First deploy. The presence of `@netlify/database` provisions the database, and migrations in `netlify/database/migrations` (schema + seed rows) apply automatically before the deploy is published. Note the platform applies migrations after the build step, so the first build runs against a not-yet-migrated database; the build detects exactly that state (Postgres 42P01) and renders from the committed seed extraction, which is identical to the seed migration's content. Every subsequent build reads the database, and any other database failure still fails the build.
 6. Run the one-time image seed from your machine (uploads the 25 prototype images to the Blobs `images` store): `netlify login`, `netlify link`, then `npm run seed:images` (added in Phase 2).
 7. Create a build hook (Project configuration → Build & deploy → Continuous deployment → Build hooks), name it e.g. `admin-publish`, and set its URL as `BUILD_HOOK_URL`.
 8. Connect the custom domain (Domain management → Add a domain).
