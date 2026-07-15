@@ -67,12 +67,21 @@ npm install
 npm run dev
 ```
 
-Astro 6 with the Netlify adapter emulates Netlify locally (functions, blobs, image CDN, environment) through the Netlify Vite plugin, so `npm run dev` is enough for most work. Database-backed pages need a database: use `netlify dev` (local Postgres-compatible database; apply migrations with `netlify database migrations apply`), or see the build-time fallback documented in Phase 2.
+Astro 6 with the Netlify adapter emulates Netlify locally (functions, blobs, image CDN, environment) through the Netlify Vite plugin, so `npm run dev` is enough for most work. Database-backed pages need a database: use `netlify dev` (local Postgres-compatible database; apply migrations with `npm run db:migrate`). Netlify itself applies migrations to hosted databases; never run them against production by hand.
+
+### Seed pipeline
+
+The seed is split in two because Netlify build plugins may only write deploy-scoped blob stores:
+
+1. **Rows** — `scripts/extract-prototype.mjs` parses `docs/gulf-coast-collection.html` verbatim (23 pieces, 6 rooms, 25 images with measured dimensions) and emits both `seed/collection.json` and the DML migration `netlify/database/migrations/20260715150000_seed_collection/`. Because it ships as a platform migration, it reaches the production database on first deploy, and deploy-preview database branches behave correctly (they fork production data, and a preview created before production was seeded still applies the migration itself). The script is deterministic and re-runnable; the migration is committed and must not be edited by hand.
+2. **Image originals** — `npm run seed:images` uploads `seed/images/*` to the global Blobs `images` store under `pieces/<accession>-<kind>.jpg`, exactly the `blob_key` values the migration wrote. Run once from your machine after the first deploy (`netlify link`, then `NETLIFY_AUTH_TOKEN=<personal access token> npm run seed:images`).
+
+Schema changes later: edit `db/schema.ts`, run `npm run db:generate` (drizzle-kit, timestamp-prefixed output into `netlify/database/migrations`), test locally with `npm run db:migrate`, commit both. Netlify applies them to previews and production automatically.
 
 ## Project phases
 
 - [x] **Phase 1** – docs verification, scaffold, deployable hello page
-- [ ] **Phase 2** – database schema, migrations, Blobs, seed from the prototype
+- [x] **Phase 2** – database schema, migrations, Blobs, seed from the prototype
 - [ ] **Phase 3** – public walkthrough at prototype fidelity, `/catalog`, `/piece/[accession]`
 - [ ] **Phase 4** – admin area and authentication
 - [ ] **Phase 5** – AI intake, valuation research, CSV export

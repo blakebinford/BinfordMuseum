@@ -9,10 +9,18 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "netlify database migrations apply",
+    "extract": "node scripts/extract-prototype.mjs",
+    "seed:images": "node scripts/seed-images.mjs"
   },
   "dependencies": {
     "@astrojs/netlify": "^7.0.7",
-    "astro": "^6.4.8"
+    "@netlify/blobs": "^10.7.9",
+    "@netlify/database": "^1.1.0",
+    "astro": "^6.4.8",
+    "drizzle-kit": "^1.0.0-beta.22",
+    "drizzle-orm": "^1.0.0-beta.22"
   }
 }

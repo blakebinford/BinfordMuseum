@@ -1,0 +1,719 @@
+{
+  "source": "docs/gulf-coast-collection.html",
+  "entry": {
+    "eyebrow": "A Private Collection of Texana",
+    "title": "Republic to Boom",
+    "sub": "The Texas Gulf Coast in maps, money, and photographs, 1841 to 1930",
+    "wallText": "Twenty-three objects tell one story: how a republic on paper became a coast of engineers, how the sea took the state's great city, and how Texas answered in concrete and oil. Assembled piece by piece and cataloged in a private archive, presented here as a walk through six rooms. Select any piece to view it in detail.",
+    "cue": "Enter the galleries"
+  },
+  "exit": {
+    "title": "About This Collection",
+    "paragraphs": [
+      "These rooms draw from a private collection of Texana focused on the Gulf Coast: Galveston, its harbor, and the engineering record of a state that built its way out of catastrophe.",
+      "Behind the gallery sits the archive. Every piece is cataloged with acquisition history, condition, provenance, and current research, and each accession number in these rooms points to that record."
+    ],
+    "colophon": "The Gulf Coast Collection · Six Rooms · MMXXVI"
+  },
+  "rooms": [
+    {
+      "id": 1,
+      "numeral": "I",
+      "title": "The Republic",
+      "dateRange": "1841 – 1851",
+      "wallText": "Texas began as an act of paperwork: boundaries drawn in London and Philadelphia, a navy financed with warrants, a republic that existed most convincingly in print. The maps in this room kept the Republic alive for years after annexation made it a state.",
+      "sort": 1,
+      "storm": false,
+      "dataLabel": "Room I · The Republic"
+    },
+    {
+      "id": 2,
+      "numeral": "II",
+      "title": "Secession",
+      "dateRange": "1861 – 1862",
+      "wallText": "Sam Houston won Texas its independence and spent his last office warning the state against throwing it away. Texas seceded anyway, and for four years its treasury fought the war the only way it could, with paper promises against a Union blockade.",
+      "sort": 2,
+      "storm": false,
+      "dataLabel": "Room II · Secession"
+    },
+    {
+      "id": 3,
+      "numeral": "III",
+      "title": "The Engineered Coast",
+      "dateRange": "1865 – 1896",
+      "wallText": "After the war, Texas rebuilt itself by census and by dredge. Galveston was the front door: the busiest cotton port on the Gulf, and after the jetties reached deep water in 1896, an engineered harbor built to rival New Orleans. The engineering record of this coast is the reason this collection exists.",
+      "sort": 3,
+      "storm": false,
+      "dataLabel": "Room III · The Engineered Coast"
+    },
+    {
+      "id": 4,
+      "numeral": "IV",
+      "title": "The Storm",
+      "dateRange": "September 8, 1900",
+      "wallText": "On September 8, 1900, a hurricane put the Gulf of Mexico over Galveston Island. At least 6,000 people died, the deadliest natural disaster in American history. Within days, stereoview photographers were working in the ruins, and the nation viewed the catastrophe in three dimensions.",
+      "sort": 4,
+      "storm": true,
+      "dataLabel": "Room IV · The Storm"
+    },
+    {
+      "id": 5,
+      "numeral": "V",
+      "title": "The Seawall",
+      "dateRange": "1902 – 1915",
+      "wallText": "Galveston answered the storm with the largest municipal engineering project of its era: a concrete seawall seventeen feet high, and behind it a city raised on jackscrews while dredged sand was pumped beneath. When a comparable hurricane struck in 1915, the wall held.",
+      "sort": 5,
+      "storm": false,
+      "dataLabel": "Room V · The Seawall"
+    },
+    {
+      "id": 6,
+      "numeral": "VI",
+      "title": "Boom",
+      "dateRange": "1901 – 1930",
+      "wallText": "An hour down the coast, on January 10, 1901, the Lucas gusher blew in at Spindletop and ran wild for nine days. The oil age arrived before Galveston had finished burying its dead, and it remade Texas: new companies by the hundreds, new rail, new roads, and by 1930 a state measured in gallons and miles.",
+      "sort": 6,
+      "storm": false,
+      "dataLabel": "Room VI · Boom"
+    }
+  ],
+  "pieces": [
+    {
+      "id": 1,
+      "accession": "GCC.1841.01",
+      "title": "Republic of Texas Naval Appropriation Warrant, $25",
+      "maker": "Republic of Texas Treasury, Austin",
+      "dateDisplay": "April 23, 1841",
+      "dateSortYear": 1841,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "currency",
+      "meta": "April 23, 1841 · Republic of Texas Treasury, Austin · Cr. AW3, Medlar 43 · PCGS Very Fine 25",
+      "roomId": 1,
+      "roomOrder": 1,
+      "label": "The Texas Navy was the Republic's most expensive habit and one of its most effective instruments: a handful of ships that kept the Gulf open, harassed Mexican supply lines, and gave the young nation leverage it could not afford to buy any other way. Congress appropriated funds it did not have, and the Treasury issued warrants against future revenue. Most were redeemed, cancelled, and destroyed after annexation, which is why surviving examples are scarce. This warrant is cataloged as Criswell AW3 and Medlar 43, graded Very Fine 25 by PCGS, with a crosscut cancellation showing it completed the journey the paper promised.",
+      "isPublic": true,
+      "layout": "pl std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1841-01-front.jpg",
+          "kind": "front",
+          "width": 612,
+          "height": 389,
+          "alt": "Republic of Texas Naval Appropriation Warrant, $25",
+          "sort": 0
+        },
+        {
+          "blobKey": "pieces/gcc-1841-01-back.jpg",
+          "kind": "back",
+          "width": 612,
+          "height": 387,
+          "alt": "Republic of Texas Naval Appropriation Warrant, $25",
+          "sort": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "accession": "GCC.1848.01",
+      "title": "Mexico, with the Republic of Texas",
+      "maker": "Jeremiah Greenleaf",
+      "dateDisplay": "1848",
+      "dateSortYear": 1848,
+      "medium": "Hand-colored engraving",
+      "dimensions": null,
+      "objectType": "map",
+      "meta": "1848 · Jeremiah Greenleaf · Hand-colored engraving",
+      "roomId": 1,
+      "roomOrder": 2,
+      "label": "Jeremiah Greenleaf, a Vermont geographer, first issued his universal atlas in 1842, when the Republic of Texas was six years old and its boundaries were a matter of active dispute. Later printings carried the same plates forward with modest revisions, which is how an 1848 buyer, in the closing months of the Mexican-American War, could still purchase a map of a republic that had joined the Union in 1845. Collectors prize these plates precisely for that lag: they preserve the moment when Texas was a country, hand-colored and bounded, after the moment had passed.",
+      "isPublic": true,
+      "layout": "pr wide",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1848-01-front.jpg",
+          "kind": "front",
+          "width": 422,
+          "height": 500,
+          "alt": "Mexico, with the Republic of Texas",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "accession": "GCC.1851.01",
+      "title": "Texas",
+      "maker": "John Tallis & Co., London",
+      "dateDisplay": "1851",
+      "dateSortYear": 1851,
+      "medium": "Steel engraving by John Rapkin, with vignettes",
+      "dimensions": null,
+      "objectType": "map",
+      "meta": "1851 · John Tallis & Co., London · Steel engraving by John Rapkin, with vignettes",
+      "roomId": 1,
+      "roomOrder": 3,
+      "label": "John Tallis and Company published its Illustrated Atlas of the World between 1849 and 1853, with maps drawn and engraved by John Rapkin. The firm's timing gives its Texas plate lasting interest: it records the state in the years around the Compromise of 1850, when Texas surrendered its claim to a panhandle reaching deep into the Rockies in exchange for federal assumption of its republic-era debt. The decorative border and vignettes were already old-fashioned when published, which is why the Tallis atlas is remembered as the end of an era rather than the start of one.",
+      "isPublic": true,
+      "layout": "pl wide",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1851-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 375,
+          "alt": "Texas",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "accession": "GCC.1861.01",
+      "title": "Gov. Sam Houston's Address to the People of Texas",
+      "maker": null,
+      "dateDisplay": "1861",
+      "dateSortYear": 1861,
+      "medium": "Period newspaper printing",
+      "dimensions": null,
+      "objectType": "document",
+      "meta": "1861 · Period newspaper printing",
+      "roomId": 2,
+      "roomOrder": 1,
+      "label": "Houston's address is one of the most quoted documents of the secession winter. He argued that the North would fight, that it would fight with overwhelming resources, and that the South was gambling everything on a war it could not win. He declined to raise arms against his own state and refused equally to swear allegiance to the Confederacy, choosing removal from office over either. Four years proved his arithmetic. Period newspaper printings are how most Texans actually encountered the speech, and they survive in far smaller numbers than the reprints that came after the war made Houston a prophet.",
+      "isPublic": true,
+      "layout": "pl wide",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1861-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 304,
+          "alt": "Gov. Sam Houston's Address to the People of Texas",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "accession": "GCC.1862.01",
+      "title": "Texas Treasury Warrant, Five Dollars",
+      "maker": "State of Texas",
+      "dateDisplay": "1862",
+      "dateSortYear": 1862,
+      "medium": "Military payment issue",
+      "dimensions": null,
+      "objectType": "currency",
+      "meta": "1862 · State of Texas · Military payment issue",
+      "roomId": 2,
+      "roomOrder": 2,
+      "label": "Texas issued two parallel streams of wartime paper: civil warrants for the ordinary business of government and military warrants for the war itself. Both circulated as money because there was little else to circulate, and both depreciated as Confederate fortunes fell. A soldier paid in warrants often sold them at a discount to merchants, who held them against the hope of eventual redemption. The paper trail of that system, ornate engraving over collapsing credit, is among the most direct financial records of the Confederate war in Texas.",
+      "isPublic": true,
+      "layout": "pr std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1862-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 333,
+          "alt": "Texas Treasury Warrant, Five Dollars",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "accession": "GCC.1862.02",
+      "title": "Texas Treasury Warrant, Two Dollars Fifty",
+      "maker": "State of Texas, Austin",
+      "dateDisplay": "July 19, 1862",
+      "dateSortYear": 1862,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "currency",
+      "meta": "July 19, 1862 · State of Texas, Austin · Cr. 8, Medlar 104 · PCGS Very Fine 20",
+      "roomId": 2,
+      "roomOrder": 3,
+      "label": "The two-dollars-fifty denomination did the unglamorous work of wartime government, settling small claims and salaries in an economy stripped of coin. It is cataloged as Criswell 8 and Medlar 104. Surviving examples in collectible grade are scarcer than their face value suggests, because small warrants circulated hard and were rarely saved. The holder preserves both faces of the note, and the reverse shows the plainness of paper issued by a treasury economizing on everything, including ink.",
+      "isPublic": true,
+      "layout": "pl std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1862-02-front.jpg",
+          "kind": "front",
+          "width": 612,
+          "height": 378,
+          "alt": "Texas Treasury Warrant, Two Dollars Fifty",
+          "sort": 0
+        },
+        {
+          "blobKey": "pieces/gcc-1862-02-back.jpg",
+          "kind": "back",
+          "width": 612,
+          "height": 378,
+          "alt": "Texas Treasury Warrant, Two Dollars Fifty",
+          "sort": 1
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "accession": "GCC.1865.01",
+      "title": "Texas, with Plan of Galveston Harbor",
+      "maker": "S. Augustus Mitchell, Philadelphia",
+      "dateDisplay": "1865",
+      "dateSortYear": 1865,
+      "medium": "Hand-colored engraving",
+      "dimensions": null,
+      "objectType": "map",
+      "meta": "1865 · S. Augustus Mitchell, Philadelphia · Hand-colored engraving",
+      "roomId": 3,
+      "roomOrder": 1,
+      "label": "S. Augustus Mitchell Jr. inherited the largest map publishing operation in America and kept its Texas plate current through the 1860s and 1870s. The 1865 issue is a hinge document: it shows the county grid of a Confederate state at the moment of surrender, published for a Northern market that expected to do business there again. The Galveston inset earned its place commercially. The city was the state's financial capital and its only serious port, and every Texas map that wanted to sell acknowledged it.",
+      "isPublic": true,
+      "layout": "pl wide",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1865-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 397,
+          "alt": "Texas, with Plan of Galveston Harbor",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "accession": "GCC.1880.01",
+      "title": "Colored Population of Texas, 1880",
+      "maker": "United States Census cartography",
+      "dateDisplay": "1880",
+      "dateSortYear": 1880,
+      "medium": "Lithograph",
+      "dimensions": null,
+      "objectType": "map",
+      "meta": "1880 · United States Census cartography · Lithograph",
+      "roomId": 3,
+      "roomOrder": 2,
+      "label": "The statistical atlases built from the 1870 and 1880 censuses were the first to map the American population thematically at scale, and race was among the first variables mapped. In Texas the pattern the shading reveals is the geography of slavery persisting a generation after emancipation: freedpeople concentrated where cotton had concentrated, along the Brazos and Colorado bottoms and in the counties toward Louisiana. Sheets like this one framed the era's political arguments over representation, labor, and land. As an object, it is data visualization seventy years before the term existed.",
+      "isPublic": true,
+      "layout": "pr std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1880-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 404,
+          "alt": "Colored Population of Texas, 1880",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "accession": "GCC.1889.01",
+      "title": "Galveston Harbor, Texas: Survey of May and June 1889",
+      "maker": "U.S. Army Corps of Engineers",
+      "dateDisplay": "1889",
+      "dateSortYear": 1889,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "map",
+      "meta": "1889 · U.S. Army Corps of Engineers · From the Annual Report of the Chief of Engineers",
+      "roomId": 3,
+      "roomOrder": 3,
+      "label": "The collection's thesis object: not a commercial view but the engineering record itself, a Corps of Engineers survey of Galveston Harbor made in May and June 1889 under Major Oswald H. Ernst and published with the Annual Report of the Chief of Engineers. Ernst commanded the Corps' Galveston district during the critical years when the city's Deep Water Committee was lobbying Congress for a national commitment to the harbor. The survey was executed by assistant engineer H. C. Ripley and Lieutenant W. C. Langfitt, and its soundings recorded the shallow bar that kept ocean shipping waiting outside the port. Congress committed to the full jetty plan the following year, and by 1896 the works had carried the channel to deep water. Ripley's name returns later in this collection: he served on the 1902 board of engineers that designed the Galveston seawall.",
+      "isPublic": true,
+      "layout": "pl std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1889-01-front.jpg",
+          "kind": "front",
+          "width": 482,
+          "height": 500,
+          "alt": "Galveston Harbor, Texas: Survey of May and June 1889",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "accession": "GCC.1896.01",
+      "title": "Scientific American: The Galveston Jetties",
+      "maker": "Munn & Co., New York",
+      "dateDisplay": "May 28, 1896",
+      "dateSortYear": 1896,
+      "medium": "Journal cover",
+      "dimensions": null,
+      "objectType": "print",
+      "meta": "May 28, 1896 · Munn & Co., New York · Journal cover",
+      "roomId": 3,
+      "roomOrder": 4,
+      "label": "The jetties were among the largest civil works in the country: parallel walls of stone reaching miles into the Gulf, designed to make the tide itself scour the channel deep. When the depth over the bar passed twenty-five feet, Galveston celebrated deep water as a national victory, and the engineering press treated it as one. Four years later the same national press would return to Galveston for the opposite reason. In this collection the cover marks the high point of confidence, the moment the coast seemed fully mastered.",
+      "isPublic": true,
+      "layout": "pr std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1896-01-front.jpg",
+          "kind": "front",
+          "width": 375,
+          "height": 500,
+          "alt": "Scientific American: The Galveston Jetties",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "accession": "GCC.1900.01",
+      "title": "Church Street and the Tremont Hotel",
+      "maker": null,
+      "dateDisplay": "1900",
+      "dateSortYear": 1900,
+      "medium": "Stereoview",
+      "dimensions": null,
+      "objectType": "stereoview",
+      "meta": "1900 · Stereoview",
+      "roomId": 4,
+      "roomOrder": 1,
+      "label": "Stereo publishers titled their Galveston cards plainly, and the plainness was the point. Viewed through a stereoscope, the flooded street acquired depth, and depth made the scale of the water believable to viewers a thousand miles from the Gulf.",
+      "isPublic": true,
+      "layout": "cab",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1900-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 208,
+          "alt": "Church Street and the Tremont Hotel",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "accession": "GCC.1900.02",
+      "title": "The Flood District",
+      "maker": null,
+      "dateDisplay": "1900",
+      "dateSortYear": 1900,
+      "medium": "Stereoview",
+      "dimensions": null,
+      "objectType": "stereoview",
+      "meta": "1900 · Stereoview",
+      "roomId": 4,
+      "roomOrder": 2,
+      "label": "The stereoview was the era's mass visual medium, sold door to door in boxed sets. Galveston sets sold in enormous numbers, and the proceeds of some were advertised as relief contributions. The cards fixed the disaster in national memory as a three-dimensional experience, which is part of why the storm remained a byword for catastrophe for a generation.",
+      "isPublic": true,
+      "layout": "cab",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1900-02-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 375,
+          "alt": "The Flood District",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "accession": "GCC.1900.03",
+      "title": "Searching for Dead Among the Ruins",
+      "maker": "Keystone View Co., Meadville, Pennsylvania",
+      "dateDisplay": "c. 1900",
+      "dateSortYear": 1900,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "stereoview",
+      "meta": "c. 1900 · Keystone View Co., Meadville, Pennsylvania",
+      "roomId": 4,
+      "roomOrder": 3,
+      "label": "Keystone View Company was one of the giants of the stereoview trade, and its Galveston series is among the most widely distributed disaster photography of the era. Cards like this one are difficult objects, made to be looked at and hard to look at. The collection holds them as records: of the storm, and of how America consumed the storm.",
+      "isPublic": true,
+      "layout": "cab",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1900-03-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 271,
+          "alt": "Searching for Dead Among the Ruins",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "accession": "GCC.1900.04",
+      "title": "Scenes from the Galveston Disaster",
+      "maker": "Black and White, London",
+      "dateDisplay": "1900",
+      "dateSortYear": 1900,
+      "medium": "Halftone press page",
+      "dimensions": null,
+      "objectType": "print",
+      "meta": "1900 · Black and White, London · Halftone press page",
+      "roomId": 4,
+      "roomOrder": 4,
+      "label": "Galveston was international news, a disaster without precedent in a port tied directly to the Liverpool cotton trade. The halftone process was barely a decade old as a mass medium, and pages like this one mark the transition from engraved illustration to photographic news. The captions organized chaos into narrative: the wrecked churches, the relief work, the burning of debris.",
+      "isPublic": true,
+      "layout": "pc std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1900-04-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 500,
+          "alt": "Scenes from the Galveston Disaster",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "accession": "GCC.1904.01",
+      "title": "The Seawall, Now Under Construction",
+      "maker": null,
+      "dateDisplay": "1904",
+      "dateSortYear": 1904,
+      "medium": "Print article",
+      "dimensions": null,
+      "objectType": "print",
+      "meta": "1904 · Print article",
+      "roomId": 5,
+      "roomOrder": 1,
+      "label": "The seawall was designed by a three-man board of engineers appointed in 1901: Brigadier General Henry M. Robert, the author of Robert's Rules of Order; Alfred Noble; and H. C. Ripley, the same engineer whose name appears on the 1889 harbor survey in Room III. Their design was a curved concrete face on a pile foundation, fronted with granite riprap, seventeen feet above mean low tide. Behind it came the grade raising, an even larger undertaking: more than two thousand structures were lifted on jackscrews while dredges pumped sand beneath them, raising the city itself. Together the wall and the raising are still cited among the great municipal engineering feats in American history.",
+      "isPublic": true,
+      "layout": "pl std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1904-01-front.jpg",
+          "kind": "front",
+          "width": 340,
+          "height": 500,
+          "alt": "The Seawall, Now Under Construction",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "accession": "GCC.1915.01",
+      "title": "After the 1915 Storm",
+      "maker": null,
+      "dateDisplay": "1915",
+      "dateSortYear": 1915,
+      "medium": "Real photo postcard",
+      "dimensions": null,
+      "objectType": "photograph",
+      "meta": "1915 · Real photo postcard",
+      "roomId": 5,
+      "roomOrder": 2,
+      "label": "Real photo postcards were the citizen journalism of their day, printed directly from negatives onto postcard stock, often by local photographers within days of an event. The 1915 storm drove a comparable surge against a city that now stood higher and behind a wall, and the difference in outcomes, thousands dead in 1900 against a toll in the city counted in the dozens in 1915, became the standard proof of the engineering. Cards like this one circulated that proof by mail.",
+      "isPublic": true,
+      "layout": "pr std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1915-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 375,
+          "alt": "After the 1915 Storm",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "accession": "GCC.1901.01",
+      "title": "Spindletop Oil Field",
+      "maker": "Keystone View Co., Beaumont",
+      "dateDisplay": "c. 1901–1903",
+      "dateSortYear": 1901,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "stereoview",
+      "meta": "c. 1901–1903 · Keystone View Co., Beaumont",
+      "roomId": 6,
+      "roomOrder": 1,
+      "label": "The forest of derricks records the anarchy of the early field, where leases were subdivided down to fractions of an acre and every fraction drilled. Overproduction crashed the price of oil to pennies a barrel within two years, and the hill's first boom burned out almost as fast as it rose. The stereoview preserves the moment before that arithmetic arrived.",
+      "isPublic": true,
+      "layout": "cab",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1901-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 276,
+          "alt": "Spindletop Oil Field",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "accession": "GCC.1901.02",
+      "title": "Spindletop Oil Field",
+      "maker": null,
+      "dateDisplay": "c. 1901–1903",
+      "dateSortYear": 1901,
+      "medium": "Stereoview",
+      "dimensions": null,
+      "objectType": "stereoview",
+      "meta": "c. 1901–1903 · Stereoview",
+      "roomId": 6,
+      "roomOrder": 2,
+      "label": "The second great subject of Spindletop photography was the crowd: speculators, drillers, lease traders, and the merely curious, arriving on every train. Stereo cards like this one sold the boom to the nation as the storm cards had sold the disaster, and together they fixed the Texas coast in the American imagination as a place where fortune and catastrophe arrived at the same scale.",
+      "isPublic": true,
+      "layout": "cab",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1901-02-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 375,
+          "alt": "Spindletop Oil Field",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "accession": "GCC.1902.01",
+      "title": "Star Petroleum Company Stock Certificate",
+      "maker": null,
+      "dateDisplay": "1902",
+      "dateSortYear": 1902,
+      "medium": null,
+      "dimensions": null,
+      "objectType": "certificate",
+      "meta": "1902 · Spindletop-era charter",
+      "roomId": 6,
+      "roomOrder": 3,
+      "label": "Spindletop's first legacy was corporate rather than geological. The Texas Company and Gulf Oil both trace to the hill, and so do hundreds of ventures that never returned a dollar, sold to investors on the strength of a map and an adjective. Certificates like this one were often the only thing a company ever produced, which gives them a documentary value their issuers never intended: a census of the boom's ambition, one engraved share at a time.",
+      "isPublic": true,
+      "layout": "pl std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1902-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 398,
+          "alt": "Star Petroleum Company Stock Certificate",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "accession": "GCC.1910.01",
+      "title": "Texas Oil Stock, Signed by Samuel Bronson Cooper",
+      "maker": null,
+      "dateDisplay": "c. 1909–1913",
+      "dateSortYear": 1910,
+      "medium": "Signed certificate",
+      "dimensions": null,
+      "objectType": "certificate",
+      "meta": "c. 1909–1913 · Signed certificate",
+      "roomId": 6,
+      "roomOrder": 4,
+      "label": "Samuel Bronson Cooper represented the Beaumont district in Congress when the Lucas gusher came in; after leaving Congress in 1909 he was appointed by President Taft to the federal Board of General Appraisers. Signatures like Cooper's did double work on a stock certificate: they lent a venture the credibility of public office, and they recorded how thoroughly the boom absorbed the region's political class. Cooper had spent his congressional career on the tariff and river-and-harbor questions that mattered to Southeast Texas, and the oil age simply became the next of those interests. The certificate survives as a small document of that transition, from cotton politics to petroleum politics.",
+      "isPublic": true,
+      "layout": "pr std",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1910-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 394,
+          "alt": "Texas Oil Stock, Signed by Samuel Bronson Cooper",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "accession": "GCC.1909.01",
+      "title": "Railroad Spike, Buffalo Bayou, Brazos & Colorado Line",
+      "maker": null,
+      "dateDisplay": "1909",
+      "dateSortYear": 1909,
+      "medium": "Iron",
+      "dimensions": null,
+      "objectType": "object",
+      "meta": "1909 · Iron · Recovered near Alleyton, Texas",
+      "roomId": 6,
+      "roomOrder": 5,
+      "label": "The Buffalo Bayou, Brazos and Colorado was chartered in 1850 as the first railroad in Texas, built to move cotton toward Galveston's wharves, and this spike, dated 1909, was recovered from the old line near Alleyton. During the Civil War, Alleyton was where the railroad stopped and the cotton road began: bales went by wagon from the railhead toward the Rio Grande and out through Mexico past the blockade. The BBB&C was folded into the Galveston, Harrisburg and San Antonio and eventually the Southern Pacific system, and by 1909 its right of way was boom infrastructure, feeding oil and lumber where it had fed cotton. The spike is the collection's one piece of the railroad itself, iron rather than paper.",
+      "isPublic": true,
+      "layout": "pl sm",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1909-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 305,
+          "alt": "Railroad Spike, Buffalo Bayou, Brazos & Colorado Line",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "accession": "GCC.1905.01",
+      "title": "Map of Texas and Indian Territory",
+      "maker": null,
+      "dateDisplay": "1905",
+      "dateSortYear": 1905,
+      "medium": "Lithograph",
+      "dimensions": "21.5 x 13.5 in.",
+      "objectType": "map",
+      "meta": "1905 · Lithograph · 21.5 x 13.5 in.",
+      "roomId": 6,
+      "roomOrder": 6,
+      "label": "Commercial lithographed maps like this one were working documents, sold to shippers, land agents, and settlers who read them for railroads first and rivers second. The paired mapping of Texas with Indian Territory records the last moment of the old arrangement; Oklahoma statehood came in November 1907. For this collection the map is the before picture of the automobile age that closes the room.",
+      "isPublic": true,
+      "layout": "pr wide",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1905-01-front.jpg",
+          "kind": "front",
+          "width": 375,
+          "height": 500,
+          "alt": "Map of Texas and Indian Territory",
+          "sort": 0
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "accession": "GCC.1930.01",
+      "title": "Texas License Plate No. 779-987",
+      "maker": null,
+      "dateDisplay": "1930",
+      "dateSortYear": 1930,
+      "medium": "Painted steel",
+      "dimensions": null,
+      "objectType": "object",
+      "meta": "1930 · Painted steel",
+      "roomId": 6,
+      "roomOrder": 7,
+      "label": "The plate closes the collection's arc deliberately. The republic in Room I was paper; the coast in Room III was engineered; the storm was survived; the oil age arrived; and its end product was ordinary motion, a stamped steel rectangle bolted to a car on a farm-to-market road. Objects like this one are the reason the collection does not end with a document: some history is iron and steel.",
+      "isPublic": true,
+      "layout": "pc sm",
+      "images": [
+        {
+          "blobKey": "pieces/gcc-1930-01-front.jpg",
+          "kind": "front",
+          "width": 500,
+          "height": 187,
+          "alt": "Texas License Plate No. 779-987",
+          "sort": 0
+        }
+      ]
+    }
+  ]
+}
