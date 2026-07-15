@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getDb, tables } from '../../../../../lib/db';
 import { formStr, parseMoneyToCents } from '../../../../../lib/admin-data';
-import { getPiece, isDateString, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
+import { getPiece, isDateString, isPublished, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -26,6 +26,6 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
   });
 
   // Public provenance appears on the public piece page.
-  if (isPublicProvenance) await rebuildIfPublic(piece.isPublic, `Provenance updated: ${piece.accession}`);
+  if (isPublicProvenance) await rebuildIfPublic(isPublished(piece), `Provenance updated: ${piece.accession}`);
   return redirect(`/admin/pieces/${id}?saved=acquisition`, 303);
 };

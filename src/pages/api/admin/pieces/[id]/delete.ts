@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getStore } from '@netlify/blobs';
 import { getDb, tables } from '../../../../../lib/db';
 import { fireBuildHook } from '../../../../../lib/build-hook';
-import { getPiece, notFound, parseId } from '../../../../../lib/admin-api';
+import { getPiece, isPublished, notFound, parseId } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -29,6 +29,6 @@ export const POST: APIRoute = async ({ params, redirect }) => {
     console.error('[admin] blob cleanup failed after piece delete:', err);
   }
 
-  if (piece.isPublic) await fireBuildHook(`Deleted: ${piece.accession}`);
+  if (isPublished(piece)) await fireBuildHook(`Deleted: ${piece.accession}`);
   return redirect('/admin/pieces?saved=deleted', 303);
 };

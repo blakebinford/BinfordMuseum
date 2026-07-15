@@ -18,9 +18,14 @@ export function isDateString(v: string | null): v is string {
   return v !== null && /^\d{4}-\d{2}-\d{2}$/.test(v);
 }
 
-/** Rebuild the public site when a change touches public content. */
-export async function rebuildIfPublic(pieceIsPublic: boolean, reason: string): Promise<void> {
-  if (pieceIsPublic) await fireBuildHook(reason);
+/** Rebuild the public site when a change touches published content. */
+export async function rebuildIfPublic(pieceIsPublished: boolean, reason: string): Promise<void> {
+  if (pieceIsPublished) await fireBuildHook(reason);
+}
+
+/** Whether a piece's content is on the public site. */
+export function isPublished(piece: { status: 'prospect' | 'draft' | 'published' }): boolean {
+  return piece.status === 'published';
 }
 
 export function notFound(): Response {

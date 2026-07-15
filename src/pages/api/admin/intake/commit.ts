@@ -1,6 +1,9 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { getDb, tables } from '../../../../lib/db';
+import { aiConfigured } from '../../../../lib/ai';
+import { detectAndStoreConnections } from '../../../../lib/connections';
+import { formStr } from '../../../../lib/admin-data';
 import { parsePieceForm } from '../../../../lib/piece-form';
 import { saveImageForPiece } from '../../../../lib/piece-images';
 
@@ -15,7 +18,7 @@ function jsonError(status: number, message: string): Response {
 
 /**
  * Intake step 2: the reviewed proposal plus the original photographs become a
- * draft piece (is_public = false; publishing is a separate explicit action on
+ * draft piece (status = draft; publishing is a separate explicit action on
  * the piece page, which fires the rebuild hook).
  */
 export const POST: APIRoute = async ({ request }) => {
@@ -31,9 +34,15 @@ export const POST: APIRoute = async ({ request }) => {
     .limit(1);
   if (clash.length > 0) return jsonError(409, 'That accession number is already in use.');
 
+  // The intake transcription (edited by the owner in the review form) lands
+  // on the draft. Public display stays off; that is a separate decision on
+  // the piece page.
+  const transcription = formStr(form, 'transcription');
+  const transcriptionReviewed = form.get('transcription_reviewed') === 'true' && transcription !== null;
+
   const [created] = await db
     .insert(tables.pieces)
-    .values({ ...values, isPublic: false })
+    .values({ ...values, status: 'draft', transcription, transcriptionReviewed })
     .returning({ id: tables.pieces.id, accession: tables.pieces.accession, title: tables.pieces.title });
 
   const files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
@@ -44,7 +53,19 @@ export const POST: APIRoute = async ({ request }) => {
     if (saved) savedCount += 1;
   }
 
-  return new Response(JSON.stringify({ id: created.id, images: savedCount }), {
+  // Connection detection runs against the final committed entry (best
+  // grounding) and stores unapproved proposals for review on the piece
+  // page. Best effort: a failure here never fails the commit.
+  let connections = 0;
+  if (aiConfigured()) {
+    try {
+      connections = await detectAndStoreConnections(created.id);
+    } catch (err) {
+      console.warn('[intake] connection detection failed (continuing):', err);
+    }
+  }
+
+  return new Response(JSON.stringify({ id: created.id, images: savedCount, connections }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

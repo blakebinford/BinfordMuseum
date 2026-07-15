@@ -1,0 +1,62 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { desc, gte, sql } from 'drizzle-orm';
+import { getDb, tables } from '../../lib/db';
+import { curatorDailyQuestionLimit, curatorMonthlyTokenCap } from '../../lib/ai-config';
+
+export const prerender = false;
+
+const db = getDb();
+const { curatorQuestions } = tables;
+
+const monthStart = new Date();
+monthStart.setUTCDate(1);
+monthStart.setUTCHours(0, 0, 0, 0);
+
+const [rows, [spend]] = await Promise.all([
+  db.select().from(curatorQuestions).orderBy(desc(curatorQuestions.createdAt)).limit(200),
+  db
+    .select({
+      total: sql<number>`coalesce(sum(${curatorQuestions.inputTokens} + ${curatorQuestions.outputTokens}), 0)::int`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(curatorQuestions)
+    .where(gte(curatorQuestions.createdAt, monthStart)),
+]);
+
+const cap = curatorMonthlyTokenCap();
+const used = spend?.total ?? 0;
+const fmt = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
+---
+
+<Admin title="Questions" active="questions">
+  <h1>Visitor Questions</h1>
+  <p class="lede">
+    What visitors ask the curator, with the answers they got. A signal for what to acquire or write
+    next. Answers are never stored as catalog content.
+  </p>
+
+  <div class="statrow">
+    <div class="stat"><div class="n">{spend?.count ?? 0}</div><div class="t">Questions This Month</div></div>
+    <div class="stat"><div class="n">{Math.round((used / cap) * 100)}%</div><div class="t">Of Monthly Token Cap</div></div>
+    <div class="stat"><div class="n">{curatorDailyQuestionLimit()}</div><div class="t">Daily Limit Per Visitor</div></div>
+  </div>
+  <p class="lede" style="margin-top:10px;">
+    {used.toLocaleString('en-US')} of {cap.toLocaleString('en-US')} tokens used this month. When the cap
+    is reached the box shows a closed-for-the-month message until the month turns. Tune with
+    CURATOR_MONTHLY_TOKEN_CAP and CURATOR_DAILY_QUESTIONS.
+  </p>
+
+  {rows.length === 0 && <p class="lede" style="margin-top:24px;">No questions yet.</p>}
+  {
+    rows.map((q) => (
+      <div class="qrow">
+        <div class="qmeta">
+          {fmt.format(q.createdAt)} UTC · visitor {q.visitorId.slice(0, 8)} · {q.inputTokens + q.outputTokens} tokens
+        </div>
+        <p class="q">{q.question}</p>
+        <p class="a">{q.answer}</p>
+      </div>
+    ))
+  }
+</Admin>

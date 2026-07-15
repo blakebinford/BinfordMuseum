@@ -11,7 +11,9 @@ const detail = Number.isInteger(id) ? await getPieceDetail(id) : null;
 if (!detail) {
   return new Response('Not found', { status: 404 });
 }
-const { piece, images, acquisitions, valuations, conditionReports, researchNotes, rooms } = detail;
+const { piece, images, acquisitions, valuations, conditionReports, researchNotes, rooms, links } = detail;
+const pendingLinks = links.filter((l) => !l.approved);
+const approvedLinks = links.filter((l) => l.approved);
 
 const saved = Astro.url.searchParams.get('saved');
 const error = Astro.url.searchParams.get('error');
@@ -34,13 +36,24 @@ const NOTICES: Record<string, string> = {
   note: 'Research note saved.',
   'note-deleted': 'Research note removed.',
   'ai-valuation': 'AI valuation research recorded below. It is an estimate, not an appraisal.',
+  drafted: 'Moved to drafts. The piece is now part of the collection record and can be published from here.',
+  transcribed: 'AI transcription drafted below. Check it against the photographs, correct it, then mark it reviewed.',
+  transcription: 'Transcription saved.',
+  'created-links': 'Draft created, with connection proposals to review below.',
+  rescan: 'Connection scan finished. Review the proposals below.',
+  'link-approved': 'Connection approved. It now appears with both pieces.',
+  'link-rejected': 'Proposal rejected.',
+  'link-removed': 'Connection removed.',
+  scouted:
+    'Prospect saved from the field companion. Assign a real accession and convert it to a draft if you buy it.',
 };
 const ERRORS: Record<string, string> = {
   invalid: 'The form was missing required fields.',
   accession: 'That accession number is already in use.',
   image: 'Upload failed. Use a JPEG or PNG under 8 MB.',
   'ai-config': 'ANTHROPIC_API_KEY is not configured on the server, so AI research is unavailable.',
-  'ai-failed': 'The valuation research did not complete. Check the function logs and try again.',
+  'ai-failed': 'The AI request did not complete. Check the function logs and try again.',
+  'no-images': 'This piece has no photographs, so there is nothing to transcribe.',
 };
 const notice = saved ? NOTICES[saved] : null;
 const errorMessage = error ? (ERRORS[error] ?? ERRORS.invalid) : null;
@@ -99,21 +112,161 @@ const chart = (() => {
 <Admin title={piece.accession} active="pieces">
   <h1>{piece.accession} · {piece.title}</h1>
   <div class="btnrow" style="margin-top:18px;">
-    <span class={`pill${piece.isPublic ? ' on' : ''}`}>{piece.isPublic ? 'Public' : 'Draft'}</span>
-    {piece.isPublic && <a class="btn" href={`/piece/${piece.accession}/`} target="_blank" rel="noopener">View Public Page</a>}
-    <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
-      <input type="hidden" name="public" value={piece.isPublic ? 'false' : 'true'} />
-      <button class={`btn${piece.isPublic ? '' : ' primary'}`} type="submit">
-        {piece.isPublic ? 'Unpublish' : 'Publish to Gallery'}
-      </button>
-    </form>
+    <span class={`pill${piece.status === 'published' ? ' on' : ''}`}>
+      {piece.status === 'published' ? 'Published' : piece.status === 'prospect' ? 'Prospect' : 'Draft'}
+    </span>
+    {piece.status === 'published' && <a class="btn" href={`/piece/${piece.accession}/`} target="_blank" rel="noopener">View Public Page</a>}
+    {
+      piece.status === 'prospect' ? (
+        <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
+          <input type="hidden" name="public" value="false" />
+          <button class="btn primary" type="submit">Add to Collection as Draft</button>
+        </form>
+      ) : (
+        <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
+          <input type="hidden" name="public" value={piece.status === 'published' ? 'false' : 'true'} />
+          <button class={`btn${piece.status === 'published' ? '' : ' primary'}`} type="submit">
+            {piece.status === 'published' ? 'Unpublish' : 'Publish to Gallery'}
+          </button>
+        </form>
+      )
+    }
   </div>
+  {
+    piece.status === 'prospect' && (
+      <p class="notice muted">
+        Prospect: a piece under consideration, saved from the field companion. It never appears on the
+        public site and is excluded from the insurance export until it joins the collection.
+      </p>
+    )
+  }
 
   {notice && <p class="notice muted">{notice}</p>}
   {errorMessage && <p class="notice">{errorMessage}</p>}
 
   <h2>Catalog Record</h2>
   <PieceForm action={`/api/admin/pieces/${piece.id}`} submitLabel="Save Piece" piece={piece} rooms={rooms} />
+
+  <h2>Transcription</h2>
+  <p class="lede">
+    All text on the object, exactly as written: printed matter, manuscript, signatures, stamps, and
+    marginalia. [illegible] marks unreadable passages and [?] follows a doubtful reading. AI output is a
+    draft until you mark it reviewed; the public piece page shows it only when it is both reviewed and
+    marked public.
+  </p>
+  <div class="btnrow">
+    <span class={`pill${piece.transcription && piece.transcriptionReviewed ? ' on' : ''}`}>
+      {!piece.transcription ? 'No transcription' : piece.transcriptionReviewed ? 'Reviewed' : 'Unreviewed draft'}
+    </span>
+    {
+      piece.transcription && (
+        <span class={`pill${piece.transcriptionPublic && piece.transcriptionReviewed ? ' on' : ''}`}>
+          {piece.transcriptionPublic
+            ? piece.transcriptionReviewed
+              ? 'Shown on public page'
+              : 'Public flag set, hidden until reviewed'
+            : 'Private'}
+        </span>
+      )
+    }
+    <form method="post" action={`/api/admin/pieces/${piece.id}/transcribe`}>
+      <button class="btn" type="submit">{piece.transcription ? 'Re-run AI Transcription' : 'Run AI Transcription'}</button>
+    </form>
+    {piece.transcription && <span class="count">Re-running replaces the text and clears review.</span>}
+  </div>
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/transcription`} style="margin-top:16px;">
+    <div class="field">
+      <label for="transcription">Text</label>
+      <textarea
+        id="transcription"
+        name="transcription"
+        style="min-height:220px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;"
+      >{piece.transcription ?? ''}</textarea>
+    </div>
+    <div class="fieldrow">
+      <div class="field">
+        <label style="display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" name="reviewed" value="true" checked={piece.transcriptionReviewed} style="width:auto;" />
+          Reviewed against the object
+        </label>
+      </div>
+      <div class="field">
+        <label style="display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" name="public" value="true" checked={piece.transcriptionPublic} style="width:auto;" />
+          Show on the public piece page (requires reviewed)
+        </label>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" type="submit">Save Transcription</button>
+    </div>
+  </form>
+
+  <h2>Connections</h2>
+  <p class="lede">
+    Links between this piece and the rest of the catalog: shared people, places, events, cause and
+    effect, maker relationships. Approved connections appear on both public piece pages as related
+    pieces, each captioned with its reason. Proposals come from the model and wait here for your
+    decision.
+  </p>
+  <div class="btnrow">
+    <form method="post" action={`/api/admin/pieces/${piece.id}/links/rescan`}>
+      <button class="btn" type="submit">Rescan for Connections</button>
+    </form>
+    <span class="count">Rescanning replaces pending proposals; approved connections stay.</span>
+  </div>
+
+  {
+    pendingLinks.length > 0 && (
+      <div style="margin-top:18px;">
+        <h3 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Proposed</h3>
+        {pendingLinks.map((l) => (
+          <div class="linkrow">
+            <div>
+              <a href={`/admin/pieces/${l.other.id}`}>
+                {l.other.accession} · {l.other.title}
+              </a>
+              <p>{l.reason}</p>
+            </div>
+            <div class="btnrow" style="margin:0;">
+              <form method="post" action={`/api/admin/links/${l.id}/approve`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn primary" type="submit">Approve</button>
+              </form>
+              <form method="post" action={`/api/admin/links/${l.id}/reject`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn" type="submit">Reject</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  {
+    approvedLinks.length > 0 && (
+      <div style="margin-top:18px;">
+        <h3 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Approved</h3>
+        {approvedLinks.map((l) => (
+          <div class="linkrow">
+            <div>
+              <a href={`/admin/pieces/${l.other.id}`}>
+                {l.other.accession} · {l.other.title}
+              </a>
+              <p>{l.reason}</p>
+            </div>
+            <div class="btnrow" style="margin:0;">
+              <form method="post" action={`/api/admin/links/${l.id}/reject`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn" type="submit">Remove</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  {links.length === 0 && <p class="lede" style="margin-top:14px;">No connections yet. Rescan to ask the model, or approve proposals as they arrive from intake.</p>}
 
   <h2>Images</h2>
   {

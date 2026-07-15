@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { getStore } from '@netlify/blobs';
 import { getDb, tables } from '../../../../../lib/db';
-import { getPiece, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
+import { getPiece, isPublished, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -22,6 +22,6 @@ export const POST: APIRoute = async ({ params, redirect }) => {
     console.error('[admin] blob delete failed:', err);
   }
 
-  if (piece) await rebuildIfPublic(piece.isPublic, `Image removed: ${piece.accession}`);
+  if (piece) await rebuildIfPublic(isPublished(piece), `Image removed: ${piece.accession}`);
   return redirect(`/admin/pieces/${image.pieceId}?saved=image-deleted`, 303);
 };

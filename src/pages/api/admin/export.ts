@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, ne } from 'drizzle-orm';
 import { getDb, tables } from '../../../lib/db';
 
 export const prerender = false;
@@ -36,12 +36,15 @@ export const GET: APIRoute = async () => {
         objectType: pieces.objectType,
         medium: pieces.medium,
         dimensions: pieces.dimensions,
-        isPublic: pieces.isPublic,
+        status: pieces.status,
         roomNumeral: rooms.numeral,
         roomTitle: rooms.title,
       })
       .from(pieces)
       .leftJoin(rooms, eq(pieces.roomId, rooms.id))
+      // Prospects are pieces under consideration, not owned; an insurance
+      // schedule covers the collection itself, so they are excluded.
+      .where(ne(pieces.status, 'prospect'))
       .orderBy(asc(pieces.accession)),
     db.select().from(acquisitions),
     db.select().from(valuations),
@@ -110,7 +113,7 @@ export const GET: APIRoute = async () => {
         csvCell(p.medium),
         csvCell(p.dimensions),
         csvCell(p.roomNumeral ? `Room ${p.roomNumeral}: ${p.roomTitle}` : 'Unplaced'),
-        csvCell(p.isPublic ? 'public' : 'draft'),
+        csvCell(p.status === 'published' ? 'public' : p.status),
         csvCell(a?.acquiredOn ?? ''),
         csvCell(a?.source ?? ''),
         csvCell(dollars(a?.pricePaidCents ?? null)),

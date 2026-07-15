@@ -80,10 +80,11 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
         </div>
         <div class="field">
           <label for="room_id">Room (optional)</label>
-          <select id="room_id" name="room_id">
+          <select id="room_id" name="room_id" data-rooms={JSON.stringify(Object.fromEntries(rooms.map((r) => [r.numeral, r.id])))}>
             <option value="">Unplaced (catalog only)</option>
             {rooms.map((r) => <option value={String(r.id)}>Room {r.numeral} · {r.title}</option>)}
           </select>
+          <span class="help" id="roomhelp"></span>
         </div>
       </div>
       <div class="field">
@@ -93,6 +94,25 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
       <div class="field">
         <label for="label">Draft Label</label>
         <textarea id="label" name="label" style="min-height:180px;"></textarea>
+      </div>
+      <div class="field">
+        <label for="transcription">Transcription</label>
+        <textarea
+          id="transcription"
+          name="transcription"
+          style="min-height:160px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;"
+        ></textarea>
+        <span class="help">
+          All text on the object as the model read it: [illegible] marks unreadable passages, [?] follows
+          doubtful readings. Correct it against the photographs; it stays private until you make it public
+          on the piece page.
+        </span>
+      </div>
+      <div class="field">
+        <label style="display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" name="transcription_reviewed" value="true" style="width:auto;" />
+          I have reviewed the transcription against the object
+        </label>
       </div>
       <div class="btnrow">
         <button class="btn primary" type="submit" id="commitbtn">Create Draft Piece</button>
@@ -139,6 +159,16 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
         setField('object_type', p.objectType);
         setField('meta', p.meta);
         setField('label', p.label);
+        setField('transcription', data.transcription ?? '');
+        const roomSelect = document.getElementById('room_id') as HTMLSelectElement;
+        const roomHelp = document.getElementById('roomhelp')!;
+        const roomsByNumeral = JSON.parse(roomSelect.dataset.rooms || '{}');
+        if (p.suggestedRoomNumeral && roomsByNumeral[p.suggestedRoomNumeral]) {
+          roomSelect.value = String(roomsByNumeral[p.suggestedRoomNumeral]);
+          roomHelp.textContent = `The model suggests Room ${p.suggestedRoomNumeral}. Placement is your decision.`;
+        } else {
+          roomHelp.textContent = '';
+        }
         aiNotes.textContent = p.notes
           ? `The model flagged for verification: ${p.notes}`
           : 'Review every field before creating the draft; the proposal is a starting point, not a record.';
@@ -164,7 +194,7 @@ const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph',
         const res = await fetch('/api/admin/intake/commit', { method: 'POST', body });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-        window.location.href = `/admin/pieces/${data.id}?saved=created`;
+        window.location.href = `/admin/pieces/${data.id}?saved=${data.connections > 0 ? 'created-links' : 'created'}`;
       } catch (err) {
         commitStatus.textContent = err instanceof Error ? err.message : 'Could not create the draft.';
         commitBtn.disabled = false;

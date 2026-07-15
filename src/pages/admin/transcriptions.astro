@@ -1,0 +1,113 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { listPieces } from '../../lib/admin-data';
+import { aiConfigured } from '../../lib/ai';
+
+export const prerender = false;
+
+const pieces = await listPieces();
+const configured = aiConfigured();
+
+// Text-bearing object types are pre-selected for the backfill; the owner can
+// adjust. Pieces that already have a transcription start unchecked so a
+// backfill never silently overwrites reviewed work.
+const TEXT_BEARING = new Set(['document', 'currency', 'certificate']);
+const rows = pieces.map((p) => ({
+  ...p,
+  preselect: TEXT_BEARING.has(p.objectType) && !p.hasTranscription,
+}));
+---
+
+<Admin title="Transcriptions" active="transcriptions">
+  <h1>Transcriptions</h1>
+  <p class="lede">
+    Queue AI transcription for the pieces that carry text: documents, currency, certificates, the
+    newspaper, the journal cover, and anything else you check. Pieces run one at a time to respect API
+    rate limits, and every result lands as an unreviewed draft to check on the piece page. Re-running a
+    piece replaces its text and clears review.
+  </p>
+
+  {!configured && <p class="notice">ANTHROPIC_API_KEY is not configured, so transcription is unavailable. Set it in the Netlify environment and redeploy.</p>}
+
+  <div class="btnrow" style="margin-top:28px;">
+    <button class="btn primary" id="runbtn" disabled={!configured}>Transcribe Checked Pieces</button>
+    <span class="count" id="runstatus"></span>
+  </div>
+
+  <table class="list">
+    <thead>
+      <tr><th></th><th>Accession</th><th>Title</th><th>Type</th><th>Images</th><th>Transcription</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((p) => (
+          <tr>
+            <td>
+              <input
+                type="checkbox"
+                class="pick"
+                value={String(p.id)}
+                checked={p.preselect}
+                disabled={p.imageCount === 0}
+                style="width:auto;"
+              />
+            </td>
+            <td class="num"><a href={`/admin/pieces/${p.id}`}>{p.accession}</a></td>
+            <td><a href={`/admin/pieces/${p.id}`}>{p.title}</a></td>
+            <td>{p.objectType}</td>
+            <td class="num">{p.imageCount}</td>
+            <td>{p.hasTranscription ? (p.transcriptionReviewed ? 'Reviewed' : 'Unreviewed draft') : 'None'}</td>
+            <td class="status" data-piece={String(p.id)}>{p.imageCount === 0 ? 'No photographs' : ''}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <script>
+    const runBtn = document.getElementById('runbtn') as HTMLButtonElement;
+    const runStatus = document.getElementById('runstatus')!;
+    const picks = [...document.querySelectorAll<HTMLInputElement>('.pick')];
+    const noPhotos = new Set(picks.filter((p) => p.disabled).map((p) => p.value));
+    const statusCell = (id: string) => document.querySelector<HTMLElement>(`.status[data-piece="${id}"]`)!;
+
+    runBtn.addEventListener('click', async () => {
+      const selected = picks.filter((p) => p.checked && !p.disabled).map((p) => p.value);
+      if (selected.length === 0) {
+        runStatus.textContent = 'Nothing checked.';
+        return;
+      }
+      runBtn.disabled = true;
+      picks.forEach((p) => (p.disabled = true));
+      let done = 0;
+      let failed = 0;
+      for (const [i, id] of selected.entries()) {
+        runStatus.textContent = `Transcribing ${i + 1} of ${selected.length}. Each piece can take up to a minute.`;
+        const cell = statusCell(id);
+        cell.textContent = 'Running…';
+        try {
+          const res = await fetch(`/api/admin/pieces/${id}/transcribe?json=1`, { method: 'POST' });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            done += 1;
+            cell.textContent = `Drafted (${data.chars} characters)`;
+          } else {
+            failed += 1;
+            cell.textContent =
+              data.error === 'ai-config'
+                ? 'Failed: API key not configured'
+                : data.error === 'no-images'
+                  ? 'Failed: no photographs'
+                  : 'Failed: request did not complete';
+          }
+        } catch {
+          failed += 1;
+          cell.textContent = 'Failed: network error';
+        }
+      }
+      runStatus.textContent = `Finished: ${done} drafted, ${failed} failed. Review each transcription on its piece page.`;
+      runBtn.disabled = false;
+      picks.forEach((p) => (p.disabled = noPhotos.has(p.value)));
+    });
+  </script>
+</Admin>

@@ -17,8 +17,14 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
 
   await getDb()
     .update(tables.pieces)
-    .set({ isPublic: makePublic, updatedAt: new Date() })
+    .set({ status: makePublic ? 'published' : 'draft', updatedAt: new Date() })
     .where(eq(tables.pieces.id, id));
+
+  // A prospect moving into drafts changes nothing public, so no rebuild.
+  // Publishing and unpublishing always fire the hook.
+  if (!makePublic && piece.status !== 'published') {
+    return redirect(`/admin/pieces/${id}?saved=drafted`, 303);
+  }
 
   const { fired } = await fireBuildHook(
     `${makePublic ? 'Published' : 'Unpublished'}: ${piece.accession}`,

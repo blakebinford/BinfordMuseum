@@ -113,6 +113,20 @@ const exit = {
   colophon: text(/class="colophon">([\s\S]*?)<\/p>/, exitSection, 'exit colophon'),
 };
 
+// ------------------------------------------------- addendum copy overrides
+// The AI-features addendum supersedes the verbatim extraction for these
+// entry and exit strings so the homepage stays accurate as the collection
+// grows: no object counts, room counts, or date ranges to maintain. The
+// exhibition title, eyebrow, cue, exit title, and second exit paragraph
+// remain verbatim from the prototype. Room and piece extraction (and the
+// seed migration built from it) are untouched.
+entry.sub = 'The history of Texas in maps, money, photographs, and objects';
+entry.wallText =
+  'Every object in these rooms witnessed Texas history firsthand: the republic on paper, the engineered coast, the storm and the answer to it, the age of oil. Assembled piece by piece and cataloged in a private archive, the collection grows as new pieces are acquired and earn their place in the rooms. Select any piece to view its full label.';
+exit.paragraphs[0] =
+  "These rooms draw from a private collection of Texana: original maps, documents, currency, photographs, and objects gathered for what they witnessed of the state's history.";
+exit.colophon = 'The Binford Collection · MMXXVI';
+
 // --------------------------------------------------------------------- backs
 const backsSrc = html.match(/const BACKS = (\{[\s\S]*?\});/)?.[1] ?? fail('BACKS map');
 const backs = JSON.parse(backsSrc);

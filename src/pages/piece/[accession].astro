@@ -13,7 +13,7 @@ export async function getStaticPaths() {
 }
 
 const { accession } = Astro.params;
-const { rooms, pieces } = await getPublicCollection();
+const { rooms, pieces, links } = await getPublicCollection();
 const piece = pieces.find((p) => p.accession === accession);
 if (!piece) throw new Error(`No public piece ${accession}`);
 
@@ -39,8 +39,10 @@ function truncate(text: string, max = 160): string {
   return `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
 
-// Related pieces: same room first, then same object type, never itself.
-function related(all: PublicPiece[], current: PublicPiece): PublicPiece[] {
+// Related pieces: approved connections first, each captioned with its
+// reason; when fewer than three exist, fill from same room, then same
+// object type, never itself.
+function fallbackRelated(all: PublicPiece[], current: PublicPiece): PublicPiece[] {
   const sameRoom = all.filter(
     (p) => p.accession !== current.accession && p.roomId !== null && p.roomId === current.roomId,
   );
@@ -50,9 +52,20 @@ function related(all: PublicPiece[], current: PublicPiece): PublicPiece[] {
       p.objectType === current.objectType &&
       !sameRoom.some((r) => r.accession === p.accession),
   );
-  return [...sameRoom, ...sameType].slice(0, 4);
+  return [...sameRoom, ...sameType];
 }
-const relatedPieces = related(pieces, piece);
+
+const byAccession = new Map(pieces.map((p) => [p.accession, p]));
+const linkedRelated = links
+  .filter((l) => l.fromAccession === piece.accession || l.toAccession === piece.accession)
+  .flatMap((l) => {
+    const other = byAccession.get(l.fromAccession === piece.accession ? l.toAccession : l.fromAccession);
+    return other ? [{ piece: other, reason: l.reason as string | null }] : [];
+  });
+const fallback = fallbackRelated(pieces, piece)
+  .filter((p) => !linkedRelated.some((lr) => lr.piece.accession === p.accession))
+  .map((p) => ({ piece: p, reason: null as string | null }));
+const relatedPieces = [...linkedRelated, ...(linkedRelated.length < 3 ? fallback : [])].slice(0, 4);
 
 const title = `${piece.title} · ${SITE_NAME}`;
 const description = truncate(piece.label);
@@ -105,6 +118,15 @@ if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenanc
     </div>
 
     {
+      piece.transcription && (
+        <section class="transcription">
+          <h2>Transcription</h2>
+          <pre>{piece.transcription}</pre>
+        </section>
+      )
+    }
+
+    {
       (back || details.length > 0) && (
         <div class="actionsrow">
           {back && <button id="flip">Turn Over</button>}
@@ -150,7 +172,7 @@ if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenanc
         <div class="related">
           <h2>Related Pieces</h2>
           <div class="grid">
-            {relatedPieces.map((rel) => {
+            {relatedPieces.map(({ piece: rel, reason }) => {
               const relFront = rel.images.find((img) => img.kind === 'front');
               return (
                 <a class="card" href={`/piece/${rel.accession}/`}>
@@ -170,6 +192,7 @@ if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenanc
                     <figcaption>
                       <span class="acc">{rel.accession}</span>
                       <h3>{rel.title}</h3>
+                      {reason && <p class="why">{reason}</p>}
                     </figcaption>
                   </figure>
                 </a>

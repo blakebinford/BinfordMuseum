@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const objectTypeEnum = pgEnum('object_type', [
@@ -42,6 +43,12 @@ export const conditionGradeEnum = pgEnum('condition_grade', [
 
 export const noteAuthorEnum = pgEnum('note_author', ['ai', 'owner']);
 
+// Piece lifecycle. `prospect` is a piece under consideration (saved from the
+// field companion, not owned); `draft` is owned but not shown publicly;
+// `published` is in the gallery. Only `published` rows may ever reach a
+// public surface (enforced in src/lib/public-data.ts).
+export const pieceStatusEnum = pgEnum('piece_status', ['prospect', 'draft', 'published']);
+
 export const rooms = pgTable('rooms', {
   id: serial().primaryKey(),
   numeral: text().notNull().unique(),
@@ -70,7 +77,14 @@ export const pieces = pgTable(
     }),
     roomOrder: integer('room_order'),
     label: text().notNull().default(''),
-    isPublic: boolean('is_public').notNull().default(false),
+    status: pieceStatusEnum().notNull().default('draft'),
+    // Complete transcription of text on the object ([illegible] and [?]
+    // conventions). AI output starts unreviewed; the owner reviews and edits
+    // before it counts as approved. Public display additionally requires the
+    // explicit per-piece flag, default off.
+    transcription: text(),
+    transcriptionReviewed: boolean('transcription_reviewed').notNull().default(false),
+    transcriptionPublic: boolean('transcription_public').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -165,6 +179,36 @@ export const conditionReports = pgTable(
   (table) => [index('condition_reports_piece_idx').on(table.pieceId)],
 );
 
+export const pieceLinks = pgTable(
+  'piece_links',
+  {
+    id: serial().primaryKey(),
+    // Directional in storage, bidirectional for display: a link (A -> B)
+    // appears on both pieces' pages once approved.
+    fromPieceId: integer('from_piece_id')
+      .notNull()
+      .references(() => pieces.id, { onDelete: 'cascade' }),
+    toPieceId: integer('to_piece_id')
+      .notNull()
+      .references(() => pieces.id, { onDelete: 'cascade' }),
+    // One sentence naming the connection, grounded in catalog text.
+    reason: text().notNull(),
+    createdBy: noteAuthorEnum('created_by').notNull(),
+    approved: boolean().notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('piece_links_from_idx').on(table.fromPieceId),
+    index('piece_links_to_idx').on(table.toPieceId),
+    unique('piece_links_pair_unique').on(table.fromPieceId, table.toPieceId),
+  ],
+);
+
 export const researchNotes = pgTable(
   'research_notes',
   {
@@ -192,5 +236,27 @@ export type NewPiece = typeof pieces.$inferInsert;
 export type PieceImage = typeof pieceImages.$inferSelect;
 export type Acquisition = typeof acquisitions.$inferSelect;
 export type Valuation = typeof valuations.$inferSelect;
+// Ask-the-curator log: every public question and its answer, with token
+// usage. Doubles as the durable rate-limit and monthly-spend ledger, and
+// shows the owner what visitors ask.
+export const curatorQuestions = pgTable(
+  'curator_questions',
+  {
+    id: serial().primaryKey(),
+    visitorId: text('visitor_id').notNull(),
+    ip: text().notNull(),
+    question: text().notNull(),
+    answer: text().notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('curator_questions_created_idx').on(table.createdAt)],
+);
+
 export type ConditionReport = typeof conditionReports.$inferSelect;
 export type ResearchNote = typeof researchNotes.$inferSelect;
+export type PieceLink = typeof pieceLinks.$inferSelect;
+export type CuratorQuestion = typeof curatorQuestions.$inferSelect;

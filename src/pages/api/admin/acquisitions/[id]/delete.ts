@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { getDb, tables } from '../../../../../lib/db';
-import { getPiece, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
+import { getPiece, isPublished, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ params, redirect }) => {
 
   if (row.isPublicProvenance) {
     const piece = await getPiece(row.pieceId);
-    if (piece) await rebuildIfPublic(piece.isPublic, `Provenance removed: ${piece.accession}`);
+    if (piece) await rebuildIfPublic(isPublished(piece), `Provenance removed: ${piece.accession}`);
   }
   return redirect(`/admin/pieces/${row.pieceId}?saved=acquisition-deleted`, 303);
 };

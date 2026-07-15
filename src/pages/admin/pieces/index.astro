@@ -10,7 +10,7 @@ const saved = Astro.url.searchParams.get('saved');
 
 <Admin title="Pieces" active="pieces">
   <h1>Pieces</h1>
-  <p class="lede">{pieces.length} cataloged. Public pieces appear in the gallery and catalog after the next publish rebuild.</p>
+  <p class="lede">{pieces.length} cataloged. Published pieces appear in the gallery and catalog after the next publish rebuild; prospects are field-companion saves under consideration.</p>
   {saved === 'deleted' && <p class="notice muted">Piece deleted.</p>}
 
   <div class="btnrow" style="margin-top:28px;">
@@ -18,23 +18,45 @@ const saved = Astro.url.searchParams.get('saved');
     <a class="btn" href="/admin/pieces/new">New Piece (Manual)</a>
   </div>
 
+  <div class="field" style="margin-top:24px;max-width:420px;">
+    <label for="piecesearch">Search</label>
+    <input id="piecesearch" type="search" placeholder="Accession, title, label, or transcription text" autocomplete="off" />
+    <span class="help">Searches every piece's full record, including unreviewed and private transcriptions.</span>
+  </div>
+
   <table class="list">
     <thead>
       <tr><th>Accession</th><th>Title</th><th>Type</th><th>Room</th><th>Images</th><th>Status</th></tr>
     </thead>
-    <tbody>
+    <tbody id="piecerows">
       {
         pieces.map((p) => (
-          <tr>
+          <tr data-search={`${p.accession} ${p.title} ${p.objectType} ${p.label} ${p.transcription ?? ''}`.toLowerCase()}>
             <td class="num"><a href={`/admin/pieces/${p.id}`}>{p.accession}</a></td>
             <td><a href={`/admin/pieces/${p.id}`}>{p.title}</a></td>
             <td>{p.objectType}</td>
             <td>{p.roomNumeral ? `Room ${p.roomNumeral}${p.roomOrder != null ? ` · ${p.roomOrder}` : ''}` : 'Unplaced'}</td>
             <td class="num">{p.imageCount}</td>
-            <td><span class={`pill${p.isPublic ? ' on' : ''}`}>{p.isPublic ? 'Public' : 'Draft'}</span></td>
+            <td>
+              <span class={`pill${p.status === 'published' ? ' on' : ''}`}>
+                {p.status === 'published' ? 'Published' : p.status === 'prospect' ? 'Prospect' : 'Draft'}
+              </span>
+            </td>
           </tr>
         ))
       }
     </tbody>
   </table>
+
+  <script>
+    const input = document.getElementById('piecesearch') as HTMLInputElement;
+    const rows = [...document.querySelectorAll<HTMLTableRowElement>('#piecerows tr')];
+    input.addEventListener('input', () => {
+      const terms = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      for (const row of rows) {
+        const hay = row.dataset.search || '';
+        row.hidden = !terms.every((t) => hay.includes(t));
+      }
+    });
+  </script>
 </Admin>

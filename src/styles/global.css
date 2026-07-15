@@ -140,12 +140,19 @@ figcaption h3 { font-family:var(--serif2); font-style:italic; font-weight:400; f
 .card .cardmeta { font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:9px; line-height:1.8; }
 .card:focus { outline:1px solid var(--accent); outline-offset:4px; }
 .card[hidden] { display:none; }
+/* Reason caption on connected related pieces. */
+.card .why { margin-top:8px; font-family:var(--serif2); font-style:italic; font-size:12.5px; line-height:1.55; color:var(--muted); }
 .empty { margin-top:56px; font-size:14px; color:var(--muted); }
 
 .piecepage { max-width:900px; margin:0 auto; padding:140px 24px 18vh; }
 .piecepage .frame { cursor:default; }
 .piecepage .placard { max-width:58ch; margin-top:26px; }
 .piecepage h1 { font-family:var(--serif2); font-style:italic; font-weight:400; font-size:clamp(22px,3.2vw,30px); line-height:1.35; margin-top:10px; color:var(--paper); }
+/* Transcription: a quiet, small-caps-labeled record of the object's own
+   text, shown only when the owner reviewed it and marked it public. */
+.transcription { margin-top:36px; padding-top:26px; border-top:1px solid var(--line); max-width:58ch; }
+.transcription h2 { font-family:var(--sans); font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.transcription pre { margin-top:16px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; line-height:1.8; color:var(--body); white-space:pre-wrap; overflow-wrap:break-word; }
 .details { margin-top:36px; padding-top:26px; border-top:1px solid var(--line); display:grid; grid-template-columns:max-content 1fr; gap:10px 28px; max-width:58ch; }
 .details dt { font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); padding-top:2px; }
 .details dd { font-size:13.5px; line-height:1.6; color:var(--body); }
@@ -158,6 +165,20 @@ figcaption h3 { font-family:var(--serif2); font-style:italic; font-weight:400; f
 @media (max-width:900px) { .related .grid { grid-template-columns:repeat(2,1fr); } }
 .backlink { display:inline-block; margin-bottom:40px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .25s; }
 .backlink:hover { color:var(--paper); }
+/* Ask the curator: a quiet question box in the exit section. */
+.curator { margin-top:64px; }
+.curator h2 { font-family:var(--serif); font-weight:400; font-size:26px; margin-top:34px; }
+.curator .curator-sub { margin-top:14px; font-size:13.5px; line-height:1.7; color:var(--muted); }
+.curator form { margin-top:24px; display:flex; gap:12px; align-items:stretch; }
+.curator textarea { flex:1; background:var(--wall-deep); border:1px solid var(--line); color:var(--paper); font-family:var(--sans); font-size:13.5px; line-height:1.6; padding:12px 14px; resize:vertical; min-height:52px; }
+.curator textarea:focus { outline:none; border-color:var(--accent); }
+.curator button { background:none; border:1px solid var(--line); color:var(--body); font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; padding:11px 22px; cursor:pointer; transition:border-color .25s, color .25s; }
+.curator button:hover { border-color:var(--accent); color:var(--paper); }
+.curator button:disabled { opacity:.55; cursor:default; }
+.curator .curator-answer { margin-top:22px; text-align:left; font-size:14px; line-height:1.75; color:var(--body); border-left:1px solid var(--accent); padding-left:18px; }
+.curator .curator-answer a { color:var(--paper); text-decoration:underline; text-underline-offset:3px; }
+.curator .curator-answer a:hover { color:var(--accent); }
+@media (max-width:640px) { .curator form { flex-direction:column; } }
 .exitlinks { margin-top:44px; display:flex; gap:14px; justify-content:center; }
 .exitlinks a { background:none; border:1px solid var(--line); color:var(--body); font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; padding:11px 22px; text-decoration:none; display:inline-block; transition:border-color .25s, color .25s; }
 .exitlinks a:hover { border-color:var(--accent); color:var(--paper); }
