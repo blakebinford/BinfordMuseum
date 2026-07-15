@@ -15,7 +15,7 @@ function jsonError(status: number, message: string): Response {
 
 /**
  * Intake step 2: the reviewed proposal plus the original photographs become a
- * draft piece (is_public = false; publishing is a separate explicit action on
+ * draft piece (status = draft; publishing is a separate explicit action on
  * the piece page, which fires the rebuild hook).
  */
 export const POST: APIRoute = async ({ request }) => {
@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const [created] = await db
     .insert(tables.pieces)
-    .values({ ...values, isPublic: false })
+    .values({ ...values, status: 'draft' })
     .returning({ id: tables.pieces.id, accession: tables.pieces.accession, title: tables.pieces.title });
 
   const files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);

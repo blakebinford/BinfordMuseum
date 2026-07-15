@@ -34,6 +34,7 @@ const NOTICES: Record<string, string> = {
   note: 'Research note saved.',
   'note-deleted': 'Research note removed.',
   'ai-valuation': 'AI valuation research recorded below. It is an estimate, not an appraisal.',
+  drafted: 'Moved to drafts. The piece is now part of the collection record and can be published from here.',
 };
 const ERRORS: Record<string, string> = {
   invalid: 'The form was missing required fields.',
@@ -99,15 +100,34 @@ const chart = (() => {
 <Admin title={piece.accession} active="pieces">
   <h1>{piece.accession} · {piece.title}</h1>
   <div class="btnrow" style="margin-top:18px;">
-    <span class={`pill${piece.isPublic ? ' on' : ''}`}>{piece.isPublic ? 'Public' : 'Draft'}</span>
-    {piece.isPublic && <a class="btn" href={`/piece/${piece.accession}/`} target="_blank" rel="noopener">View Public Page</a>}
-    <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
-      <input type="hidden" name="public" value={piece.isPublic ? 'false' : 'true'} />
-      <button class={`btn${piece.isPublic ? '' : ' primary'}`} type="submit">
-        {piece.isPublic ? 'Unpublish' : 'Publish to Gallery'}
-      </button>
-    </form>
+    <span class={`pill${piece.status === 'published' ? ' on' : ''}`}>
+      {piece.status === 'published' ? 'Published' : piece.status === 'prospect' ? 'Prospect' : 'Draft'}
+    </span>
+    {piece.status === 'published' && <a class="btn" href={`/piece/${piece.accession}/`} target="_blank" rel="noopener">View Public Page</a>}
+    {
+      piece.status === 'prospect' ? (
+        <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
+          <input type="hidden" name="public" value="false" />
+          <button class="btn primary" type="submit">Add to Collection as Draft</button>
+        </form>
+      ) : (
+        <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
+          <input type="hidden" name="public" value={piece.status === 'published' ? 'false' : 'true'} />
+          <button class={`btn${piece.status === 'published' ? '' : ' primary'}`} type="submit">
+            {piece.status === 'published' ? 'Unpublish' : 'Publish to Gallery'}
+          </button>
+        </form>
+      )
+    }
   </div>
+  {
+    piece.status === 'prospect' && (
+      <p class="notice muted">
+        Prospect: a piece under consideration, saved from the field companion. It never appears on the
+        public site and is excluded from the insurance export until it joins the collection.
+      </p>
+    )
+  }
 
   {notice && <p class="notice muted">{notice}</p>}
   {errorMessage && <p class="notice">{errorMessage}</p>}

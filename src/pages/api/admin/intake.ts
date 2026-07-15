@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request }) => {
   const labels = await getDb()
     .select({ label: tables.pieces.label })
     .from(tables.pieces)
-    .where(eq(tables.pieces.isPublic, true))
+    .where(eq(tables.pieces.status, 'published'))
     .orderBy(asc(tables.pieces.accession));
   const voice = labels
     .map((row) => row.label)

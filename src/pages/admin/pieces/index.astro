@@ -10,7 +10,7 @@ const saved = Astro.url.searchParams.get('saved');
 
 <Admin title="Pieces" active="pieces">
   <h1>Pieces</h1>
-  <p class="lede">{pieces.length} cataloged. Public pieces appear in the gallery and catalog after the next publish rebuild.</p>
+  <p class="lede">{pieces.length} cataloged. Published pieces appear in the gallery and catalog after the next publish rebuild; prospects are field-companion saves under consideration.</p>
   {saved === 'deleted' && <p class="notice muted">Piece deleted.</p>}
 
   <div class="btnrow" style="margin-top:28px;">
@@ -31,7 +31,11 @@ const saved = Astro.url.searchParams.get('saved');
             <td>{p.objectType}</td>
             <td>{p.roomNumeral ? `Room ${p.roomNumeral}${p.roomOrder != null ? ` · ${p.roomOrder}` : ''}` : 'Unplaced'}</td>
             <td class="num">{p.imageCount}</td>
-            <td><span class={`pill${p.isPublic ? ' on' : ''}`}>{p.isPublic ? 'Public' : 'Draft'}</span></td>
+            <td>
+              <span class={`pill${p.status === 'published' ? ' on' : ''}`}>
+                {p.status === 'published' ? 'Published' : p.status === 'prospect' ? 'Prospect' : 'Draft'}
+              </span>
+            </td>
           </tr>
         ))
       }

@@ -3,17 +3,17 @@
   "entry": {
     "eyebrow": "A Private Collection of Texana",
     "title": "Republic to Boom",
-    "sub": "The Texas Gulf Coast in maps, money, and photographs, 1841 to 1930",
-    "wallText": "Twenty-three objects tell one story: how a republic on paper became a coast of engineers, how the sea took the state's great city, and how Texas answered in concrete and oil. Assembled piece by piece and cataloged in a private archive, presented here as a walk through six rooms. Select any piece to view it in detail.",
+    "sub": "The history of Texas in maps, money, photographs, and objects",
+    "wallText": "Every object in these rooms witnessed Texas history firsthand: the republic on paper, the engineered coast, the storm and the answer to it, the age of oil. Assembled piece by piece and cataloged in a private archive, the collection grows as new pieces are acquired and earn their place in the rooms. Select any piece to view its full label.",
     "cue": "Enter the galleries"
   },
   "exit": {
     "title": "About This Collection",
     "paragraphs": [
-      "These rooms draw from a private collection of Texana focused on the Gulf Coast: Galveston, its harbor, and the engineering record of a state that built its way out of catastrophe.",
+      "These rooms draw from a private collection of Texana: original maps, documents, currency, photographs, and objects gathered for what they witnessed of the state's history.",
       "Behind the gallery sits the archive. Every piece is cataloged with acquisition history, condition, provenance, and current research, and each accession number in these rooms points to that record."
     ],
-    "colophon": "The Gulf Coast Collection · Six Rooms · MMXXVI"
+    "colophon": "The Binford Collection · MMXXVI"
   },
   "rooms": [
     {

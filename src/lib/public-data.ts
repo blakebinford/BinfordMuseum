@@ -85,7 +85,10 @@ async function fromDatabase(): Promise<PublicCollection> {
       label: pieces.label,
     })
     .from(pieces)
-    .where(eq(pieces.isPublic, true))
+    // Only published pieces, ever. Drafts and prospects (field-companion
+    // saves of pieces the owner does not own) are structurally excluded
+    // from every public surface.
+    .where(eq(pieces.status, 'published'))
     .orderBy(asc(pieces.dateSortYear), asc(pieces.accession));
 
   const ids = pieceRows.map((p) => p.id);

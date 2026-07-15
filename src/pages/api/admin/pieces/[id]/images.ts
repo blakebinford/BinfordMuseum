@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { saveImageForPiece } from '../../../../../lib/piece-images';
-import { getPiece, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
+import { getPiece, isPublished, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -24,6 +24,6 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
   const saved = await saveImageForPiece(piece, Buffer.from(await file.arrayBuffer()), kind, alt);
   if (!saved) return redirect(`/admin/pieces/${id}?error=image`, 303);
 
-  await rebuildIfPublic(piece.isPublic, `Image added: ${piece.accession}`);
+  await rebuildIfPublic(isPublished(piece), `Image added: ${piece.accession}`);
   return redirect(`/admin/pieces/${id}?saved=image`, 303);
 };

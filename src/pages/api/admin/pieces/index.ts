@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   const [created] = await db
     .insert(tables.pieces)
-    .values({ ...values, isPublic: false })
+    .values({ ...values, status: 'draft' })
     .returning({ id: tables.pieces.id });
 
   return redirect(`/admin/pieces/${created.id}?saved=created`, 303);

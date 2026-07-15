@@ -4,7 +4,7 @@ import Logo from '../components/Logo.astro';
 import PieceFigure from '../components/PieceFigure.astro';
 import { getPublicCollection } from '../lib/public-data';
 import type { PublicPiece } from '../lib/public-data';
-import { SITE_NAME, rebrand } from '../lib/site';
+import { SITE_NAME } from '../lib/site';
 import seed from '../../seed/collection.json';
 
 // Prerendered from the database at build time; publishing in the admin fires
@@ -145,7 +145,7 @@ const roomsWithPieces = rooms.map((room) => ({
       <div class="exitlinks">
         <a href="/catalog/">Browse the Catalog</a>
       </div>
-      <p class="colophon">{rebrand(exit.colophon)}</p>
+      <p class="colophon">{exit.colophon}</p>
     </div>
   </section>
 

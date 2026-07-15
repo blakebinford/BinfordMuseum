@@ -14,8 +14,9 @@ export async function getDashboard() {
   const [counts] = await db
     .select({
       pieces: sql<number>`count(*)::int`,
-      publicPieces: sql<number>`count(*) filter (where ${pieces.isPublic})::int`,
-      drafts: sql<number>`count(*) filter (where not ${pieces.isPublic})::int`,
+      publicPieces: sql<number>`count(*) filter (where ${pieces.status} = 'published')::int`,
+      drafts: sql<number>`count(*) filter (where ${pieces.status} = 'draft')::int`,
+      prospects: sql<number>`count(*) filter (where ${pieces.status} = 'prospect')::int`,
       missingLabel: sql<number>`count(*) filter (where ${pieces.label} = '')::int`,
     })
     .from(pieces);
@@ -77,7 +78,7 @@ export async function listPieces() {
       accession: pieces.accession,
       title: pieces.title,
       objectType: pieces.objectType,
-      isPublic: pieces.isPublic,
+      status: pieces.status,
       roomOrder: pieces.roomOrder,
       roomNumeral: rooms.numeral,
       imageCount: sql<number>`(select count(*) from ${pieceImages} where ${pieceImages.pieceId} = ${pieces.id})::int`,

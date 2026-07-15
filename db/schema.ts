@@ -42,6 +42,12 @@ export const conditionGradeEnum = pgEnum('condition_grade', [
 
 export const noteAuthorEnum = pgEnum('note_author', ['ai', 'owner']);
 
+// Piece lifecycle. `prospect` is a piece under consideration (saved from the
+// field companion, not owned); `draft` is owned but not shown publicly;
+// `published` is in the gallery. Only `published` rows may ever reach a
+// public surface (enforced in src/lib/public-data.ts).
+export const pieceStatusEnum = pgEnum('piece_status', ['prospect', 'draft', 'published']);
+
 export const rooms = pgTable('rooms', {
   id: serial().primaryKey(),
   numeral: text().notNull().unique(),
@@ -70,7 +76,7 @@ export const pieces = pgTable(
     }),
     roomOrder: integer('room_order'),
     label: text().notNull().default(''),
-    isPublic: boolean('is_public').notNull().default(false),
+    status: pieceStatusEnum().notNull().default('draft'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

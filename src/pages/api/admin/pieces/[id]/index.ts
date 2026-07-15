@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { and, eq, ne } from 'drizzle-orm';
 import { getDb, tables } from '../../../../../lib/db';
 import { parsePieceForm } from '../../../../../lib/piece-form';
-import { getPiece, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
+import { getPiece, isPublished, notFound, parseId, rebuildIfPublic } from '../../../../../lib/admin-api';
 
 export const prerender = false;
 
@@ -28,6 +28,6 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
     .set({ ...values, updatedAt: new Date() })
     .where(eq(tables.pieces.id, id));
 
-  await rebuildIfPublic(piece.isPublic, `Piece updated: ${values.accession}`);
+  await rebuildIfPublic(isPublished(piece), `Piece updated: ${values.accession}`);
   return redirect(`/admin/pieces/${id}?saved=piece`, 303);
 };
