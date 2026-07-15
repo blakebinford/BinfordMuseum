@@ -224,7 +224,7 @@ const chart = (() => {
       class="btn primary"
       type="button"
       id="aival"
-      data-start="/background/ai-valuation"
+      data-start={`/api/admin/pieces/${piece.id}/valuations/ai`}
       data-status={`/api/admin/pieces/${piece.id}/valuations/ai-status`}
       data-piece={String(piece.id)}
       data-latest={String(valuations.filter((v) => v.method === 'ai_research').map((v) => v.id).sort((a, b) => b - a)[0] ?? '')}
@@ -438,12 +438,12 @@ const chart = (() => {
         };
         say('Research started in the background. It usually lands within a few minutes; you can keep working.');
         try {
-          const start = await fetch(aiBtn.dataset.start!, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pieceId: Number(aiBtn.dataset.piece) }),
-          });
-          if (!start.ok && start.status !== 202) throw new Error(`Start failed (${start.status})`);
+          const start = await fetch(aiBtn.dataset.start!, { method: 'POST' });
+          if (!start.ok) {
+            const failure = await start.json().catch(() => ({}));
+            window.location.href = `${window.location.pathname}?error=${failure.error || 'ai-failed'}`;
+            return;
+          }
 
           for (let attempt = 0; attempt < 75; attempt += 1) {
             await sleep(4000);
