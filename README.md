@@ -86,6 +86,14 @@ NETLIFY_DB_URL="postgresql://user@host/db" NETLIFY_DB_DRIVER=server npm run buil
 
 `NETLIFY_DB_DRIVER=server` selects the standard `pg` pool; without it, the Netlify Database driver assumes the platform's serverless (Neon HTTP) endpoint. On Netlify itself, neither variable is ever set by hand.
 
+## Admin notes
+
+- Every `/admin` page and `/api/admin` endpoint is on-demand rendered, guarded by `src/middleware.ts` (session check, 303 to `/admin/login` for pages, 401 for APIs), and served with `X-Robots-Tag: noindex, nofollow` plus a meta `noindex`.
+- Sessions are a signed, HTTP-only, `SameSite=Strict` cookie (HMAC-SHA256 over an expiry with `SESSION_SECRET`, 7-day lifetime). Passwords verify against the scrypt hash in `ADMIN_PASSWORD_HASH`; generate one with `npm run hash-password`. Astro's built-in same-origin check (`security.checkOrigin`) covers form CSRF, and the middleware rejects cross-origin mutations as a second layer.
+- Login rate limiting is a 10-attempts-per-15-minutes sliding window per client IP, plus a constant delay on failure. The window is in-memory per function instance, which is a real but bounded weakening on serverless (a new cold instance starts a fresh window); scrypt's cost and the delay still make brute force impractical for a strong password. If you ever need a durable limiter, back it with the database.
+- Publishing or unpublishing a piece always fires the build hook; saving edits, image changes, or public-provenance changes fire it only when the piece is public. If `BUILD_HOOK_URL` is unset, changes still save and the admin says the site will update on the next deploy.
+- Piece deletion cascades to all child records and removes the piece's blobs.
+
 ## Public site notes
 
 - The walkthrough at `/` is prerendered from the database and reproduces the prototype exactly. A build-time structural check during development compared the rendered output figure-by-figure with `docs/gulf-coast-collection.html`: all 23 pieces verbatim (accession, title, meta, label, placement classes), trio/pair cabinet groupings, all six room headers and wall texts, entry/exit copy, storm-room treatment, Turn Over on the two reverse pieces only, and no em dashes anywhere.
@@ -99,5 +107,5 @@ NETLIFY_DB_URL="postgresql://user@host/db" NETLIFY_DB_DRIVER=server npm run buil
 - [x] **Phase 1** – docs verification, scaffold, deployable hello page
 - [x] **Phase 2** – database schema, migrations, Blobs, seed from the prototype
 - [x] **Phase 3** – public walkthrough at prototype fidelity, `/catalog`, `/piece/[accession]`
-- [ ] **Phase 4** – admin area and authentication
+- [x] **Phase 4** – admin area and authentication
 - [ ] **Phase 5** – AI intake, valuation research, CSV export

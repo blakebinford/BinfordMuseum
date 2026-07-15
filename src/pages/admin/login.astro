@@ -1,0 +1,51 @@
+---
+import '../../styles/global.css';
+import '../../styles/admin.css';
+
+export const prerender = false;
+
+if (Astro.locals.isAdmin) {
+  return Astro.redirect('/admin', 303);
+}
+
+const error = Astro.url.searchParams.get('error');
+const messages: Record<string, string> = {
+  credentials: 'That password was not accepted.',
+  rate: 'Too many attempts. Wait fifteen minutes and try again.',
+  config: 'The server is missing its authentication configuration.',
+};
+const message = error ? (messages[error] ?? messages.credentials) : null;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In · Collection Archive</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="login">
+      <div class="box">
+        <p class="eyebrow">The Gulf Coast Collection</p>
+        <h1>Collection Archive</h1>
+        {message && <p class="notice">{message}</p>}
+        <form class="stack" method="post" action="/api/admin/login">
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required autofocus />
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" type="submit">Sign In</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

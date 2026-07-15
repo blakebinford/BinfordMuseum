@@ -1,0 +1,19 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import PieceForm from '../../../components/PieceForm.astro';
+import { asc } from 'drizzle-orm';
+import { getDb, tables } from '../../../lib/db';
+
+export const prerender = false;
+
+const rooms = await getDb().select().from(tables.rooms).orderBy(asc(tables.rooms.sort));
+const error = Astro.url.searchParams.get('error');
+---
+
+<Admin title="New Piece" active="pieces">
+  <h1>New Piece</h1>
+  <p class="lede">Manual catalog entry. Pieces start as drafts; publish from the piece page when ready. For AI-assisted entry from photographs, use Intake instead.</p>
+  {error === 'accession' && <p class="notice">That accession number is already in use.</p>}
+  {error === 'invalid' && <p class="notice">The form was missing required fields.</p>}
+  <PieceForm action="/api/admin/pieces" submitLabel="Create Draft" rooms={rooms} />
+</Admin>

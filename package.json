@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "netlify database migrations apply",
     "extract": "node scripts/extract-prototype.mjs",
-    "seed:images": "node scripts/seed-images.mjs"
+    "seed:images": "node scripts/seed-images.mjs",
+    "hash-password": "node scripts/hash-password.mjs"
   },
   "dependencies": {
     "@astrojs/netlify": "^7.0.7",
