@@ -220,10 +220,18 @@ const chart = (() => {
 
   <h2>Valuations</h2>
   <div class="btnrow">
-    <button class="btn primary" type="button" id="aival" data-url={`/api/admin/pieces/${piece.id}/valuations/ai`}>
+    <button
+      class="btn primary"
+      type="button"
+      id="aival"
+      data-start="/background/ai-valuation"
+      data-status={`/api/admin/pieces/${piece.id}/valuations/ai-status`}
+      data-piece={String(piece.id)}
+      data-latest={String(valuations.filter((v) => v.method === 'ai_research').map((v) => v.id).sort((a, b) => b - a)[0] ?? '')}
+    >
       Run AI Valuation Research
     </button>
-    <span class="count" id="aistatus">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Takes up to a minute; the result is an estimate.</span>
+    <span class="count" id="aistatus">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Runs in the background for a few minutes; the result is an estimate.</span>
   </div>
   {
     chart && (
@@ -414,32 +422,52 @@ const chart = (() => {
   </form>
 
   <script>
-    // AI valuation runs over a streamed response (heartbeats while the
-    // research executes), so it is driven by fetch rather than a form post.
+    // AI valuation runs as a Netlify background function (research can
+    // legitimately exceed the 60-second synchronous limit). The button
+    // kicks off the run, then polls the status endpoint; completion is
+    // detected by a new ai_research valuation row appearing.
     const aiBtn = document.getElementById('aival') as HTMLButtonElement | null;
     const aiStatus = document.getElementById('aistatus');
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     if (aiBtn) {
       aiBtn.addEventListener('click', async () => {
         aiBtn.disabled = true;
-        if (aiStatus) {
-          aiStatus.textContent = 'Researching comparable sales. This can take up to a minute; keep this page open.';
-        }
+        const initialLatest = aiBtn.dataset.latest || '';
+        const say = (text: string) => {
+          if (aiStatus) aiStatus.textContent = text;
+        };
+        say('Research started in the background. It usually lands within a few minutes; you can keep working.');
         try {
-          const res = await fetch(aiBtn.dataset.url!, { method: 'POST' });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-          const text = await res.text();
-          const lines = text.trim().split('\n').filter((line) => line && line !== 'working');
-          const result = JSON.parse(lines[lines.length - 1] ?? '{}');
-          if (result.done) {
-            window.location.href = `${window.location.pathname}?saved=ai-valuation`;
-          } else {
-            window.location.href = `${window.location.pathname}?error=${result.error || 'ai-failed'}`;
+          const start = await fetch(aiBtn.dataset.start!, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pieceId: Number(aiBtn.dataset.piece) }),
+          });
+          if (!start.ok && start.status !== 202) throw new Error(`Start failed (${start.status})`);
+
+          for (let attempt = 0; attempt < 75; attempt += 1) {
+            await sleep(4000);
+            let payload: { state?: string; error?: string | null; latestId?: number | null };
+            try {
+              const res = await fetch(aiBtn.dataset.status!, { headers: { Accept: 'application/json' } });
+              if (!res.ok) continue;
+              payload = await res.json();
+            } catch {
+              continue;
+            }
+            if (payload.latestId && String(payload.latestId) !== initialLatest) {
+              window.location.href = `${window.location.pathname}?saved=ai-valuation`;
+              return;
+            }
+            if (payload.state === 'failed') {
+              window.location.href = `${window.location.pathname}?error=${payload.error || 'ai-failed'}`;
+              return;
+            }
           }
+          say('Still running after five minutes. Reload this page in a little while; if no valuation appears, check the ai-valuation function logs in Netlify.');
+          aiBtn.disabled = false;
         } catch {
-          if (aiStatus) {
-            aiStatus.textContent =
-              'The research did not complete. Reload to see whether a valuation was saved, then try again.';
-          }
+          say('The research could not be started. Check your connection and try again.');
           aiBtn.disabled = false;
         }
       });
