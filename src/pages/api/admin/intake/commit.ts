@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { getDb, tables } from '../../../../lib/db';
+import { aiConfigured } from '../../../../lib/ai';
+import { detectAndStoreConnections } from '../../../../lib/connections';
 import { formStr } from '../../../../lib/admin-data';
 import { parsePieceForm } from '../../../../lib/piece-form';
 import { saveImageForPiece } from '../../../../lib/piece-images';
@@ -51,7 +53,19 @@ export const POST: APIRoute = async ({ request }) => {
     if (saved) savedCount += 1;
   }
 
-  return new Response(JSON.stringify({ id: created.id, images: savedCount }), {
+  // Connection detection runs against the final committed entry (best
+  // grounding) and stores unapproved proposals for review on the piece
+  // page. Best effort: a failure here never fails the commit.
+  let connections = 0;
+  if (aiConfigured()) {
+    try {
+      connections = await detectAndStoreConnections(created.id);
+    } catch (err) {
+      console.warn('[intake] connection detection failed (continuing):', err);
+    }
+  }
+
+  return new Response(JSON.stringify({ id: created.id, images: savedCount, connections }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

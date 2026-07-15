@@ -65,3 +65,8 @@ form.stack { display:flex; flex-direction:column; gap:18px; max-width:640px; mar
 .chart { margin-top:24px; border:1px solid var(--line); background:var(--wall-deep); padding:20px; max-width:640px; }
 .chart svg { display:block; width:100%; height:auto; }
 .chart .axis { font-family:var(--sans); font-size:9px; letter-spacing:.08em; fill:var(--muted); }
+
+.linkrow { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; padding:14px 0; border-bottom:1px solid var(--line); max-width:760px; }
+.linkrow a { color:var(--paper); text-decoration:none; font-size:13.5px; }
+.linkrow a:hover { color:var(--accent); }
+.linkrow p { margin-top:6px; font-size:13px; line-height:1.6; color:var(--body); max-width:56ch; }

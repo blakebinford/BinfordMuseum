@@ -3,10 +3,18 @@
  * may read every field, unlike src/lib/public-data.ts.
  */
 
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { getDb, tables } from './db';
 
-const { pieces, rooms, pieceImages, acquisitions, valuations, conditionReports, researchNotes } = tables;
+const { pieces, rooms, pieceImages, acquisitions, valuations, conditionReports, researchNotes, pieceLinks } = tables;
+
+export interface PieceLinkWithOther {
+  id: number;
+  reason: string;
+  createdBy: 'ai' | 'owner';
+  approved: boolean;
+  other: { id: number; accession: string; title: string; status: 'prospect' | 'draft' | 'published' };
+}
 
 export async function getDashboard() {
   const db = getDb();
@@ -98,15 +106,36 @@ export async function getPieceDetail(id: number) {
   const db = getDb();
   const [piece] = await db.select().from(pieces).where(eq(pieces.id, id)).limit(1);
   if (!piece) return null;
-  const [images, pieceAcquisitions, pieceValuations, pieceConditions, pieceNotes, allRooms] = await Promise.all([
+  const [images, pieceAcquisitions, pieceValuations, pieceConditions, pieceNotes, allRooms, linkRows] = await Promise.all([
     db.select().from(pieceImages).where(eq(pieceImages.pieceId, id)).orderBy(asc(pieceImages.sort), asc(pieceImages.id)),
     db.select().from(acquisitions).where(eq(acquisitions.pieceId, id)).orderBy(desc(acquisitions.createdAt)),
     db.select().from(valuations).where(eq(valuations.pieceId, id)).orderBy(asc(valuations.valuedOn), asc(valuations.id)),
     db.select().from(conditionReports).where(eq(conditionReports.pieceId, id)).orderBy(desc(conditionReports.reportedOn)),
     db.select().from(researchNotes).where(eq(researchNotes.pieceId, id)).orderBy(desc(researchNotes.createdAt)),
     db.select().from(rooms).orderBy(asc(rooms.sort)),
+    db
+      .select()
+      .from(pieceLinks)
+      .where(or(eq(pieceLinks.fromPieceId, id), eq(pieceLinks.toPieceId, id)))
+      .orderBy(desc(pieceLinks.createdAt)),
   ]);
-  return { piece, images, acquisitions: pieceAcquisitions, valuations: pieceValuations, conditionReports: pieceConditions, researchNotes: pieceNotes, rooms: allRooms };
+
+  // Links are directional in storage, bidirectional for display: resolve the
+  // counterpart piece for each.
+  const otherIds = [...new Set(linkRows.map((l) => (l.fromPieceId === id ? l.toPieceId : l.fromPieceId)))];
+  const others = otherIds.length
+    ? await db
+        .select({ id: pieces.id, accession: pieces.accession, title: pieces.title, status: pieces.status })
+        .from(pieces)
+        .where(inArray(pieces.id, otherIds))
+    : [];
+  const othersById = new Map(others.map((p) => [p.id, p]));
+  const links: PieceLinkWithOther[] = linkRows.flatMap((l) => {
+    const other = othersById.get(l.fromPieceId === id ? l.toPieceId : l.fromPieceId);
+    return other ? [{ id: l.id, reason: l.reason, createdBy: l.createdBy, approved: l.approved, other }] : [];
+  });
+
+  return { piece, images, acquisitions: pieceAcquisitions, valuations: pieceValuations, conditionReports: pieceConditions, researchNotes: pieceNotes, rooms: allRooms, links };
 }
 
 export function formatCents(cents: number | null): string {

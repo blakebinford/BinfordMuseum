@@ -42,7 +42,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Voice examples: a spread of existing labels from the database.
-  const labels = await getDb()
+  const db = getDb();
+  const labels = await db
     .select({ label: tables.pieces.label })
     .from(tables.pieces)
     .where(eq(tables.pieces.status, 'published'))
@@ -53,12 +54,18 @@ export const POST: APIRoute = async ({ request }) => {
     .filter((_, i) => i % 4 === 0)
     .slice(0, 6);
 
+  // Rooms for the placement suggestion (owner decides).
+  const rooms = await db
+    .select({ numeral: tables.rooms.numeral, title: tables.rooms.title })
+    .from(tables.rooms)
+    .orderBy(asc(tables.rooms.sort));
+
   try {
     // Transcription runs in parallel with the proposal (same photographs,
     // independent calls). A transcription failure does not fail intake; the
     // owner can run it again from the piece page after committing.
     const [proposal, transcription] = await Promise.all([
-      proposeIntake(images, hints, voice),
+      proposeIntake(images, hints, voice, rooms),
       transcribeImages(images).catch((err) => {
         console.warn('[intake] transcription failed (continuing without it):', err);
         return null;

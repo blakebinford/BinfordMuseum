@@ -49,9 +49,17 @@ export interface PublicPiece {
   images: PublicImage[];
 }
 
+/** An approved connection between two published pieces. */
+export interface PublicLink {
+  fromAccession: string;
+  toAccession: string;
+  reason: string;
+}
+
 export interface PublicCollection {
   rooms: PublicRoom[];
   pieces: PublicPiece[];
+  links: PublicLink[];
 }
 
 async function fromDatabase(): Promise<PublicCollection> {
@@ -132,8 +140,27 @@ async function fromDatabase(): Promise<PublicCollection> {
     if (row.provenanceText) provenanceByPiece.set(row.pieceId, row.provenanceText);
   }
 
+  // Approved connections whose BOTH ends are published pieces (the id ->
+  // accession map below only contains published rows, so links touching a
+  // draft or prospect drop out here).
+  const linkRows = await db
+    .select({
+      fromPieceId: tables.pieceLinks.fromPieceId,
+      toPieceId: tables.pieceLinks.toPieceId,
+      reason: tables.pieceLinks.reason,
+    })
+    .from(tables.pieceLinks)
+    .where(eq(tables.pieceLinks.approved, true));
+  const accessionById = new Map(pieceRows.map((p) => [p.id, p.accession]));
+  const links = linkRows.flatMap((l) => {
+    const fromAccession = accessionById.get(l.fromPieceId);
+    const toAccession = accessionById.get(l.toPieceId);
+    return fromAccession && toAccession ? [{ fromAccession, toAccession, reason: l.reason }] : [];
+  });
+
   return {
     rooms: roomRows,
+    links,
     pieces: pieceRows.map(({ id, ...piece }) => ({
       ...piece,
       publicProvenance: provenanceByPiece.get(id) ?? null,
@@ -147,6 +174,7 @@ async function fromDatabase(): Promise<PublicCollection> {
 async function fromSeedFile(): Promise<PublicCollection> {
   const { default: collection } = await import('../../seed/collection.json');
   return {
+    links: [],
     rooms: collection.rooms.map((r) => ({
       id: r.id,
       numeral: r.numeral,

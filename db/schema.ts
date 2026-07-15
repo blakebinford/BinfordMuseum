@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const objectTypeEnum = pgEnum('object_type', [
@@ -178,6 +179,36 @@ export const conditionReports = pgTable(
   (table) => [index('condition_reports_piece_idx').on(table.pieceId)],
 );
 
+export const pieceLinks = pgTable(
+  'piece_links',
+  {
+    id: serial().primaryKey(),
+    // Directional in storage, bidirectional for display: a link (A -> B)
+    // appears on both pieces' pages once approved.
+    fromPieceId: integer('from_piece_id')
+      .notNull()
+      .references(() => pieces.id, { onDelete: 'cascade' }),
+    toPieceId: integer('to_piece_id')
+      .notNull()
+      .references(() => pieces.id, { onDelete: 'cascade' }),
+    // One sentence naming the connection, grounded in catalog text.
+    reason: text().notNull(),
+    createdBy: noteAuthorEnum('created_by').notNull(),
+    approved: boolean().notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('piece_links_from_idx').on(table.fromPieceId),
+    index('piece_links_to_idx').on(table.toPieceId),
+    unique('piece_links_pair_unique').on(table.fromPieceId, table.toPieceId),
+  ],
+);
+
 export const researchNotes = pgTable(
   'research_notes',
   {
@@ -207,3 +238,4 @@ export type Acquisition = typeof acquisitions.$inferSelect;
 export type Valuation = typeof valuations.$inferSelect;
 export type ConditionReport = typeof conditionReports.$inferSelect;
 export type ResearchNote = typeof researchNotes.$inferSelect;
+export type PieceLink = typeof pieceLinks.$inferSelect;

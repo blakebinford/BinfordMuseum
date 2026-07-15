@@ -11,7 +11,9 @@ const detail = Number.isInteger(id) ? await getPieceDetail(id) : null;
 if (!detail) {
   return new Response('Not found', { status: 404 });
 }
-const { piece, images, acquisitions, valuations, conditionReports, researchNotes, rooms } = detail;
+const { piece, images, acquisitions, valuations, conditionReports, researchNotes, rooms, links } = detail;
+const pendingLinks = links.filter((l) => !l.approved);
+const approvedLinks = links.filter((l) => l.approved);
 
 const saved = Astro.url.searchParams.get('saved');
 const error = Astro.url.searchParams.get('error');
@@ -37,6 +39,11 @@ const NOTICES: Record<string, string> = {
   drafted: 'Moved to drafts. The piece is now part of the collection record and can be published from here.',
   transcribed: 'AI transcription drafted below. Check it against the photographs, correct it, then mark it reviewed.',
   transcription: 'Transcription saved.',
+  'created-links': 'Draft created, with connection proposals to review below.',
+  rescan: 'Connection scan finished. Review the proposals below.',
+  'link-approved': 'Connection approved. It now appears with both pieces.',
+  'link-rejected': 'Proposal rejected.',
+  'link-removed': 'Connection removed.',
 };
 const ERRORS: Record<string, string> = {
   invalid: 'The form was missing required fields.',
@@ -192,6 +199,72 @@ const chart = (() => {
       <button class="btn primary" type="submit">Save Transcription</button>
     </div>
   </form>
+
+  <h2>Connections</h2>
+  <p class="lede">
+    Links between this piece and the rest of the catalog: shared people, places, events, cause and
+    effect, maker relationships. Approved connections appear on both public piece pages as related
+    pieces, each captioned with its reason. Proposals come from the model and wait here for your
+    decision.
+  </p>
+  <div class="btnrow">
+    <form method="post" action={`/api/admin/pieces/${piece.id}/links/rescan`}>
+      <button class="btn" type="submit">Rescan for Connections</button>
+    </form>
+    <span class="count">Rescanning replaces pending proposals; approved connections stay.</span>
+  </div>
+
+  {
+    pendingLinks.length > 0 && (
+      <div style="margin-top:18px;">
+        <h3 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Proposed</h3>
+        {pendingLinks.map((l) => (
+          <div class="linkrow">
+            <div>
+              <a href={`/admin/pieces/${l.other.id}`}>
+                {l.other.accession} · {l.other.title}
+              </a>
+              <p>{l.reason}</p>
+            </div>
+            <div class="btnrow" style="margin:0;">
+              <form method="post" action={`/api/admin/links/${l.id}/approve`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn primary" type="submit">Approve</button>
+              </form>
+              <form method="post" action={`/api/admin/links/${l.id}/reject`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn" type="submit">Reject</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  {
+    approvedLinks.length > 0 && (
+      <div style="margin-top:18px;">
+        <h3 style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Approved</h3>
+        {approvedLinks.map((l) => (
+          <div class="linkrow">
+            <div>
+              <a href={`/admin/pieces/${l.other.id}`}>
+                {l.other.accession} · {l.other.title}
+              </a>
+              <p>{l.reason}</p>
+            </div>
+            <div class="btnrow" style="margin:0;">
+              <form method="post" action={`/api/admin/links/${l.id}/reject`}>
+                <input type="hidden" name="piece" value={String(piece.id)} />
+                <button class="btn" type="submit">Remove</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  {links.length === 0 && <p class="lede" style="margin-top:14px;">No connections yet. Rescan to ask the model, or approve proposals as they arrive from intake.</p>}
 
   <h2>Images</h2>
   {

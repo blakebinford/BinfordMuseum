@@ -50,6 +50,8 @@ export interface IntakeProposal {
   meta: string;
   label: string;
   notes: string;
+  /** Suggested room placement (numeral); the owner decides. */
+  suggestedRoomNumeral: string | null;
 }
 
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
@@ -57,8 +59,23 @@ const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type:
 const INTAKE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['title', 'date_display', 'date_sort_year', 'maker', 'medium', 'object_type', 'meta', 'label', 'notes'],
+  required: [
+    'title',
+    'date_display',
+    'date_sort_year',
+    'maker',
+    'medium',
+    'object_type',
+    'meta',
+    'label',
+    'notes',
+    'suggested_room_numeral',
+  ],
   properties: {
+    suggested_room_numeral: nullable({
+      type: 'string',
+      description: 'Numeral of the room this piece belongs in, from the room list; null if it fits none.',
+    }),
     title: { type: 'string', description: 'Piece title in the collection style: descriptive, no quotation marks.' },
     date_display: nullable({ type: 'string', description: 'Display date, e.g. "1851" or "c. 1901-1903" or "April 23, 1841".' }),
     date_sort_year: nullable({ type: 'integer', description: 'Single sortable year.' }),
@@ -76,10 +93,16 @@ export interface IntakeImage {
   mediaType: 'image/jpeg' | 'image/png';
 }
 
+export interface RoomOption {
+  numeral: string;
+  title: string;
+}
+
 export async function proposeIntake(
   images: IntakeImage[],
   hints: string,
   voiceExamples: string[],
+  rooms: RoomOption[],
 ): Promise<IntakeProposal> {
   if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
 
@@ -91,6 +114,7 @@ export async function proposeIntake(
     'The register: confident, historically grounded prose that explains why the piece matters and how it connects to the coast’s story; concrete detail over adjectives; sentences that carry their own weight; no first person, no direct address, no hedging filler.',
     'Never use em dashes anywhere in any field. Use commas, colons, or separate sentences instead.',
     'Identify only what the photographs and hints support. Put genuine uncertainties in the notes field rather than inventing specifics like catalog numbers, printers, or exact dates.',
+    `The gallery's rooms:\n${rooms.map((r) => `Room ${r.numeral}: ${r.title}`).join('\n')}\n\nSuggest which room the piece belongs in (suggested_room_numeral), or null if none fits. Placement is the owner's decision.`,
   ].join('\n\n');
 
   const content: Anthropic.ContentBlockParam[] = [
@@ -121,6 +145,8 @@ export async function proposeIntake(
   const parsed = parseJsonText(response);
 
   const objectType = OBJECT_TYPES.includes(parsed.object_type) ? parsed.object_type : 'object';
+  const numerals = new Set(rooms.map((r) => r.numeral));
+  const suggested = typeof parsed.suggested_room_numeral === 'string' ? parsed.suggested_room_numeral.trim() : null;
   return {
     title: stripEmDashes(String(parsed.title ?? '')),
     dateDisplay: optionalString(parsed.date_display),
@@ -131,7 +157,123 @@ export async function proposeIntake(
     meta: stripEmDashes(String(parsed.meta ?? '')),
     label: stripEmDashes(String(parsed.label ?? '')),
     notes: stripEmDashes(String(parsed.notes ?? '')),
+    suggestedRoomNumeral: suggested && numerals.has(suggested) ? suggested : null,
   };
+}
+
+// -------------------------------------------------------------- connections
+
+export interface ConnectionSubject {
+  accession: string;
+  title: string;
+  label: string;
+  transcription?: string | null;
+}
+
+export interface ConnectionCandidate {
+  accession: string;
+  title: string;
+  label: string;
+  transcription?: string | null;
+}
+
+export interface ConnectionProposal {
+  accession: string;
+  reason: string;
+}
+
+const CONNECTIONS_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['connections'],
+  properties: {
+    connections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['accession', 'reason'],
+        properties: {
+          accession: { type: 'string', description: 'Accession number of the existing piece being linked.' },
+          reason: {
+            type: 'string',
+            description: 'One sentence naming the connection, grounded in the supplied catalog text.',
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+/**
+ * Propose connections between one piece and the rest of the catalog: shared
+ * people, places, events, cause and effect across rooms, maker
+ * relationships. Grounded strictly in the supplied text (titles, labels,
+ * approved transcriptions). Returns only proposals whose accessions exist in
+ * the supplied catalog, capped by configuration.
+ */
+export async function proposeConnections(
+  subject: ConnectionSubject,
+  catalog: ConnectionCandidate[],
+): Promise<ConnectionProposal[]> {
+  if (!aiConfigured()) throw new AiError('ANTHROPIC_API_KEY is not set', 'config');
+  if (catalog.length === 0) return [];
+
+  const entry = (p: { accession: string; title: string; label: string; transcription?: string | null }) =>
+    [
+      `<piece accession="${p.accession}">`,
+      `Title: ${p.title}`,
+      p.label ? `Label: ${p.label}` : null,
+      p.transcription ? `Transcription:\n${p.transcription}` : null,
+      '</piece>',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+  const system = [
+    `You are the curator of ${SITE_NAME}, a private collection of Texana. You know every piece and how the collection's story fits together.`,
+    'You are given one subject piece and the catalog of existing pieces. Propose connections between the subject and specific existing pieces: shared people, shared places, shared events, cause and effect across the story, or maker relationships.',
+    'Each proposal names its connection in ONE sentence, grounded strictly in the supplied text. Never invent facts that the titles, labels, and transcriptions do not support.',
+    'Write in the collection’s curatorial voice, matching the register of the labels you are shown: confident, concrete, historically grounded. Never use em dashes; use commas, colons, or separate sentences instead.',
+    `Propose at most ${AI_LIMITS.connections.maxProposals} connections, strongest first, and only connections that genuinely illuminate the collection. An empty list is a fine answer.`,
+  ].join('\n\n');
+
+  let response: Anthropic.Message;
+  try {
+    response = await getClient().messages.create({
+      model: AI_MODEL,
+      max_tokens: AI_LIMITS.connections.maxTokens,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `Subject piece:\n\n${entry(subject)}\n\nExisting catalog:\n\n${catalog.map(entry).join('\n\n')}`,
+        },
+      ],
+      output_config: {
+        effort: AI_LIMITS.connections.effort,
+        format: { type: 'json_schema', schema: CONNECTIONS_SCHEMA },
+      },
+    });
+  } catch (err) {
+    throw toAiError(err);
+  }
+  if (response.stop_reason === 'refusal') throw new AiError('The model declined this request.', 'refusal');
+  const parsed = parseJsonText(response);
+
+  const known = new Set(catalog.map((p) => p.accession));
+  const seen = new Set<string>();
+  const out: ConnectionProposal[] = [];
+  for (const raw of Array.isArray(parsed.connections) ? parsed.connections : []) {
+    const accession = String(raw?.accession ?? '').trim();
+    const reason = stripEmDashes(String(raw?.reason ?? ''));
+    if (!known.has(accession) || accession === subject.accession) continue;
+    if (seen.has(accession) || !reason) continue;
+    seen.add(accession);
+    out.push({ accession, reason });
+    if (out.length >= AI_LIMITS.connections.maxProposals) break;
+  }
+  return out;
 }
 
 // ------------------------------------------------------------ transcription
