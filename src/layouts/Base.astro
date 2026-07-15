@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { SITE_NAME } from '../lib/site';
 
 interface Props {
   title: string;
@@ -24,7 +25,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
-    <meta property="og:site_name" content="The Gulf Coast Collection" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />

@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { getPublicCollection } from '../lib/public-data';
 import { cdnSrcset, cdnUrl } from '../lib/images';
+import { SITE_NAME } from '../lib/site';
 
 export const prerender = true;
 
@@ -42,11 +43,11 @@ const decades = [...new Set(cards.map((c) => c.decade).filter(Boolean))].sort();
 ---
 
 <Base
-  title="Catalog · The Gulf Coast Collection"
-  description="Browse every public piece in the Gulf Coast Collection: maps, money, photographs, and objects of the Texas Gulf Coast, 1841 to 1930."
+  title={`Catalog · ${SITE_NAME}`}
+  description={`Browse every public piece in ${SITE_NAME}: maps, money, photographs, and objects of the Texas Gulf Coast, 1841 to 1930.`}
 >
   <header class="masthead">
-    <a class="brand" href="/">The Gulf Coast Collection</a>
+    <a class="brand" href="/">{SITE_NAME}</a>
     <span class="where">Catalog</span>
   </header>
 

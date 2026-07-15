@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import { getPublicCollection } from '../../lib/public-data';
 import type { PublicPiece } from '../../lib/public-data';
 import { cdnLargeUrl, cdnSrcset, cdnUrl } from '../../lib/images';
+import { SITE_NAME } from '../../lib/site';
 
 export const prerender = true;
 
@@ -53,7 +54,7 @@ function related(all: PublicPiece[], current: PublicPiece): PublicPiece[] {
 }
 const relatedPieces = related(pieces, piece);
 
-const title = `${piece.title} · The Gulf Coast Collection`;
+const title = `${piece.title} · ${SITE_NAME}`;
 const description = truncate(piece.label);
 const ogImage = front ? new URL(cdnUrl(front.blobKey, { w: 1200 }), Astro.site ?? Astro.url).href : undefined;
 
@@ -70,7 +71,7 @@ if (piece.publicProvenance) detailRows.push(['Provenance', piece.publicProvenanc
 
 <Base title={title} description={description} ogImage={ogImage} ogImageAlt={front?.alt || piece.title} ogType="article">
   <header class="masthead">
-    <a class="brand" href="/">The Gulf Coast Collection</a>
+    <a class="brand" href="/">{SITE_NAME}</a>
     <span class="where">{piece.accession}</span>
   </header>
 

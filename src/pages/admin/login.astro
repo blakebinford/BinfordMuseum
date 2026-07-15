@@ -1,6 +1,7 @@
 ---
 import '../../styles/global.css';
 import '../../styles/admin.css';
+import { SITE_NAME } from '../../lib/site';
 
 export const prerender = false;
 
@@ -24,6 +25,7 @@ const message = error ? (messages[error] ?? messages.credentials) : null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign In · Collection Archive</title>
     <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Inter:wght@400;500;600&display=swap"
@@ -33,7 +35,7 @@ const message = error ? (messages[error] ?? messages.credentials) : null;
   <body>
     <div class="login">
       <div class="box">
-        <p class="eyebrow">The Gulf Coast Collection</p>
+        <p class="eyebrow">{SITE_NAME}</p>
         <h1>Collection Archive</h1>
         {message && <p class="notice">{message}</p>}
         <form class="stack" method="post" action="/api/admin/login">

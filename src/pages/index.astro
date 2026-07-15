@@ -1,8 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
 import PieceFigure from '../components/PieceFigure.astro';
 import { getPublicCollection } from '../lib/public-data';
 import type { PublicPiece } from '../lib/public-data';
+import { SITE_NAME, rebrand } from '../lib/site';
 import seed from '../../seed/collection.json';
 
 // Prerendered from the database at build time; publishing in the admin fires
@@ -69,9 +71,9 @@ const roomsWithPieces = rooms.map((room) => ({
 }));
 ---
 
-<Base title="The Gulf Coast Collection" description={entry.sub}>
+<Base title={SITE_NAME} description={entry.sub}>
   <header class="masthead">
-    <span class="brand">The Gulf Coast Collection</span>
+    <span class="brand">{SITE_NAME}</span>
     <span class="where" id="where">Entry Hall</span>
   </header>
 
@@ -93,7 +95,9 @@ const roomsWithPieces = rooms.map((room) => ({
   </nav>
 
   <section class="entry" id="entry" data-label="Entry Hall">
-    <p class="eyebrow r in">{entry.eyebrow}</p>
+    {/* The owner's lockup carries the collection name and "Texana", so it
+        replaces the prototype's text eyebrow at the top of the entry hall. */}
+    <Logo class="brandmark r in" />
     <h1 class="r in">{entry.title}</h1>
     <p class="sub r in">{entry.sub}</p>
     <p class="walltext r in">{entry.wallText}</p>
@@ -141,7 +145,7 @@ const roomsWithPieces = rooms.map((room) => ({
       <div class="exitlinks">
         <a href="/catalog/">Browse the Catalog</a>
       </div>
-      <p class="colophon">{exit.colophon}</p>
+      <p class="colophon">{rebrand(exit.colophon)}</p>
     </div>
   </section>
 
