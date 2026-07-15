@@ -209,18 +209,21 @@ let cached: PublicCollection | null = null;
 
 /**
  * Netlify Database applies migrations after the build, immediately before a
- * deploy is published. On the very first deploy (and on a deploy preview
- * branched before production was seeded) the database is therefore reachable
- * but has no tables yet when the build's prerender queries run. That exact
- * state surfaces as Postgres error 42P01 (undefined_table), possibly wrapped
- * by the driver or Drizzle.
+ * deploy is published, so a build whose code ships new migrations always
+ * prerenders against a database that is one schema version behind. Two
+ * Postgres errors mark that exact state, possibly wrapped by the driver or
+ * Drizzle: 42P01 (undefined_table; the very first deploy, or a deploy that
+ * adds a table this build queries) and 42703 (undefined_column; a deploy
+ * that adds columns this build selects, as the piece status and
+ * transcription migrations did).
  */
 function isNotYetMigrated(err: unknown): boolean {
   let current: unknown = err;
   for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
     const code = (current as Error & { code?: unknown }).code;
-    if (code === '42P01') return true;
+    if (code === '42P01' || code === '42703') return true;
     if (/relation "[^"]+" does not exist/.test(current.message)) return true;
+    if (/column "?[\w.]+"? does not exist/.test(current.message)) return true;
     current = current.cause;
   }
   return false;
@@ -230,12 +233,14 @@ function isNotYetMigrated(err: unknown): boolean {
  * Public collection for build-time rendering. Uses the Netlify Database when
  * a connection is present (always the case on Netlify once the database is
  * provisioned). Two narrow fallbacks build from the committed seed
- * extraction instead: offline local builds with no NETLIFY_DB_URL, and the
- * first-deploy bootstrap where the database exists but its migrations have
- * not yet been applied (they run at the end of that same deploy; the seed
- * file and the seed migration carry identical content, so the published
- * output is correct either way). Anything else, including an unreachable
- * database, still fails the build rather than shipping stale content.
+ * extraction instead: offline local builds with no NETLIFY_DB_URL, and any
+ * deploy whose migrations have not yet been applied, because the platform
+ * applies them after the build (the first deploy with no tables at all, and
+ * every deploy that ships new tables or columns the build queries). The
+ * fallback publishes the seed content for that one deploy; migrations apply
+ * at its end, and the next build renders from the database. Anything else,
+ * including an unreachable database, still fails the build rather than
+ * shipping stale content.
  */
 export async function getPublicCollection(): Promise<PublicCollection> {
   if (cached) return cached;
@@ -245,8 +250,8 @@ export async function getPublicCollection(): Promise<PublicCollection> {
     } catch (err) {
       if (!isNotYetMigrated(err)) throw err;
       console.warn(
-        '[public-data] Database is reachable but not yet migrated (expected on the first deploy). ' +
-          'Building from the committed seed; migrations apply at the end of this deploy and the next build reads the database.',
+        '[public-data] Database is reachable but behind this build\'s schema (expected when a deploy ships new migrations; they apply at the end of this deploy). ' +
+          'Building public pages from the committed seed. Trigger one more deploy afterward so the site renders from the database again.',
       );
       cached = await fromSeedFile();
     }
