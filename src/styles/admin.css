@@ -1,0 +1,67 @@
+/* Collection archive (admin) styles. Composes the public design tokens;
+   no new colors or typefaces. */
+
+.adminbar { position:sticky; top:0; z-index:40; display:flex; align-items:baseline; gap:26px; padding:18px 28px; background:var(--wall-deep); border-bottom:1px solid var(--line); }
+.adminbar .brand { font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); text-decoration:none; }
+.adminbar .brand strong { color:var(--accent); font-weight:600; }
+.adminbar nav { display:flex; gap:18px; margin-left:auto; }
+.adminbar nav a { font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .25s; }
+.adminbar nav a:hover, .adminbar nav a[aria-current="page"] { color:var(--paper); }
+.adminbar form { display:inline; }
+.adminbar button { background:none; border:none; font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); cursor:pointer; padding:0; transition:color .25s; }
+.adminbar button:hover { color:var(--paper); }
+
+.adminwrap { max-width:1140px; margin:0 auto; padding:56px 28px 20vh; }
+.adminwrap h1 { font-family:var(--serif); font-weight:400; font-size:clamp(30px,4.5vw,44px); line-height:1.05; }
+.adminwrap h2 { font-size:11px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-top:64px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.adminwrap .lede { margin-top:14px; font-size:14px; line-height:1.7; color:var(--body); max-width:60ch; }
+
+.statrow { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:36px; }
+.stat { background:var(--wall-deep); padding:22px; }
+.stat .n { font-family:var(--serif); font-size:34px; line-height:1; }
+.stat .t { margin-top:10px; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+
+table.list { width:100%; border-collapse:collapse; margin-top:24px; }
+table.list th { text-align:left; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); padding:10px 14px 10px 0; border-bottom:1px solid var(--line); }
+table.list td { font-size:13.5px; color:var(--body); padding:12px 14px 12px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+table.list td a { color:var(--paper); text-decoration:none; }
+table.list td a:hover { color:var(--accent); }
+table.list .num { font-variant-numeric:tabular-nums; }
+.pill { display:inline-block; font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; padding:3px 8px; border:1px solid var(--line); color:var(--muted); }
+.pill.on { border-color:var(--accent); color:var(--accent); }
+
+form.stack { display:flex; flex-direction:column; gap:18px; max-width:640px; margin-top:24px; }
+.field { display:flex; flex-direction:column; gap:8px; }
+.field label { font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+.field input, .field select, .field textarea { background:var(--wall-deep); border:1px solid var(--line); color:var(--paper); font-family:var(--sans); font-size:13.5px; padding:10px 12px; }
+.field textarea { min-height:130px; line-height:1.6; resize:vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline:1px solid var(--accent); outline-offset:2px; }
+.field .help { font-size:11px; color:var(--muted); line-height:1.5; }
+.fieldrow { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+@media (max-width:700px) { .fieldrow { grid-template-columns:1fr; } }
+
+.btn { background:none; border:1px solid var(--line); color:var(--body); font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; padding:11px 22px; cursor:pointer; transition:border-color .25s, color .25s; text-decoration:none; display:inline-block; }
+.btn:hover { border-color:var(--accent); color:var(--paper); }
+.btn.primary { border-color:var(--accent); color:var(--paper); }
+.btn.danger:hover { border-color:var(--accent); color:var(--accent); }
+.btnrow { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+
+.notice { margin-top:24px; padding:14px 18px; border:1px solid var(--accent); font-size:13px; color:var(--paper); max-width:640px; }
+.notice.muted { border-color:var(--line); color:var(--body); }
+
+.thumbrow { display:flex; gap:18px; flex-wrap:wrap; margin-top:24px; }
+.thumb { width:170px; }
+.thumb img { width:100%; height:auto; display:block; border:1px solid rgba(234,226,212,.09); }
+.thumb .t { margin-top:8px; font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); display:flex; justify-content:space-between; gap:8px; }
+.thumb form { display:inline; }
+.thumb button { background:none; border:none; color:var(--muted); font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; padding:0; }
+.thumb button:hover { color:var(--accent); }
+
+.login { min-height:100svh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--wall-deep); }
+.login .box { width:100%; max-width:380px; }
+.login .eyebrow { font-size:11px; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:var(--accent); }
+.login h1 { font-family:var(--serif); font-weight:400; font-size:34px; margin-top:14px; }
+
+.chart { margin-top:24px; border:1px solid var(--line); background:var(--wall-deep); padding:20px; max-width:640px; }
+.chart svg { display:block; width:100%; height:auto; }
+.chart .axis { font-family:var(--sans); font-size:9px; letter-spacing:.08em; fill:var(--muted); }

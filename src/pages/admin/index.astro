@@ -1,0 +1,95 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { getDashboard, formatCents } from '../../lib/admin-data';
+
+export const prerender = false;
+
+const { counts, recentAcquisitions, missingImages, missingLabels, missingValuations } = await getDashboard();
+---
+
+<Admin title="Dashboard" active="dashboard">
+  <h1>Dashboard</h1>
+  <p class="lede">The archive behind the gallery. Prices, valuations, condition, and research live here and never reach the public site.</p>
+
+  <div class="statrow">
+    <div class="stat"><div class="n">{counts.pieces}</div><div class="t">Pieces</div></div>
+    <div class="stat"><div class="n">{counts.publicPieces}</div><div class="t">Public</div></div>
+    <div class="stat"><div class="n">{counts.drafts}</div><div class="t">Drafts</div></div>
+    <div class="stat"><div class="n">{counts.withImages}</div><div class="t">With Images</div></div>
+    <div class="stat"><div class="n">{counts.valued}</div><div class="t">With Valuations</div></div>
+  </div>
+
+  <div class="btnrow" style="margin-top:36px;">
+    <a class="btn primary" href="/admin/intake">New Piece via Intake</a>
+    <a class="btn" href="/admin/pieces/new">New Piece (Manual)</a>
+    <a class="btn" href="/admin/export">Insurance CSV</a>
+  </div>
+
+  <h2>Recent Acquisitions</h2>
+  {
+    recentAcquisitions.length === 0 ? (
+      <p class="lede">No acquisitions recorded yet.</p>
+    ) : (
+      <table class="list">
+        <thead>
+          <tr><th>Piece</th><th>Acquired</th><th>Source</th><th>Price Paid</th></tr>
+        </thead>
+        <tbody>
+          {recentAcquisitions.map((a) => (
+            <tr>
+              <td><a href={`/admin/pieces/${a.pieceId}`}>{a.accession} · {a.title}</a></td>
+              <td>{a.acquiredOn ?? ''}</td>
+              <td>{a.source ?? ''}</td>
+              <td class="num">{formatCents(a.pricePaidCents)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  <h2>Missing Images</h2>
+  {
+    missingImages.length === 0 ? (
+      <p class="lede">Every piece has at least one image.</p>
+    ) : (
+      <table class="list">
+        <tbody>
+          {missingImages.map((p) => (
+            <tr><td><a href={`/admin/pieces/${p.id}`}>{p.accession} · {p.title}</a></td></tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  <h2>Missing Labels</h2>
+  {
+    missingLabels.length === 0 ? (
+      <p class="lede">Every piece has a label.</p>
+    ) : (
+      <table class="list">
+        <tbody>
+          {missingLabels.map((p) => (
+            <tr><td><a href={`/admin/pieces/${p.id}`}>{p.accession} · {p.title}</a></td></tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  <h2>Missing Valuations</h2>
+  {
+    missingValuations.length === 0 ? (
+      <p class="lede">Every piece has at least one valuation.</p>
+    ) : (
+      <table class="list">
+        <tbody>
+          {missingValuations.map((p) => (
+            <tr><td><a href={`/admin/pieces/${p.id}`}>{p.accession} · {p.title}</a></td></tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Admin>

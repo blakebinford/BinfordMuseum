@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+import '../styles/admin.css';
+
+interface Props {
+  title: string;
+  active?: 'dashboard' | 'pieces' | 'intake' | 'export';
+}
+
+const { title, active } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} · Collection Archive</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="adminbar">
+      <a class="brand" href="/admin">The Gulf Coast Collection · <strong>Archive</strong></a>
+      <nav>
+        <a href="/admin" aria-current={active === 'dashboard' ? 'page' : undefined}>Dashboard</a>
+        <a href="/admin/pieces" aria-current={active === 'pieces' ? 'page' : undefined}>Pieces</a>
+        <a href="/admin/intake" aria-current={active === 'intake' ? 'page' : undefined}>Intake</a>
+        <a href="/admin/export" aria-current={active === 'export' ? 'page' : undefined}>Export</a>
+        <a href="/" target="_blank" rel="noopener">Public Site</a>
+        <form method="post" action="/api/admin/logout"><button type="submit">Log Out</button></form>
+      </nav>
+    </header>
+    <main class="adminwrap">
+      <slot />
+    </main>
+  </body>
+</html>

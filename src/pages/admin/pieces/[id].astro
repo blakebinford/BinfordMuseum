@@ -1,0 +1,415 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import PieceForm from '../../../components/PieceForm.astro';
+import { getPieceDetail, formatCents } from '../../../lib/admin-data';
+import { cdnUrl } from '../../../lib/images';
+
+export const prerender = false;
+
+const id = Number(Astro.params.id);
+const detail = Number.isInteger(id) ? await getPieceDetail(id) : null;
+if (!detail) {
+  return new Response('Not found', { status: 404 });
+}
+const { piece, images, acquisitions, valuations, conditionReports, researchNotes, rooms } = detail;
+
+const saved = Astro.url.searchParams.get('saved');
+const error = Astro.url.searchParams.get('error');
+
+const NOTICES: Record<string, string> = {
+  created: 'Draft created. Add images and records below.',
+  piece: 'Piece saved.',
+  published: 'Published. The public site is rebuilding.',
+  'published-nohook': 'Published, but no build hook is configured; the public site will update on the next deploy.',
+  unpublished: 'Unpublished. The public site is rebuilding.',
+  'unpublished-nohook': 'Unpublished, but no build hook is configured; the public site will update on the next deploy.',
+  image: 'Image uploaded.',
+  'image-deleted': 'Image removed.',
+  acquisition: 'Acquisition recorded.',
+  'acquisition-deleted': 'Acquisition removed.',
+  valuation: 'Valuation recorded.',
+  'valuation-deleted': 'Valuation removed.',
+  condition: 'Condition report recorded.',
+  'condition-deleted': 'Condition report removed.',
+  note: 'Research note saved.',
+  'note-deleted': 'Research note removed.',
+  'ai-valuation': 'AI valuation research recorded below. It is an estimate, not an appraisal.',
+};
+const ERRORS: Record<string, string> = {
+  invalid: 'The form was missing required fields.',
+  accession: 'That accession number is already in use.',
+  image: 'Upload failed. Use a JPEG or PNG under 8 MB.',
+  'ai-config': 'ANTHROPIC_API_KEY is not configured on the server, so AI research is unavailable.',
+  'ai-failed': 'The valuation research did not complete. Check the function logs and try again.',
+};
+const notice = saved ? NOTICES[saved] : null;
+const errorMessage = error ? (ERRORS[error] ?? ERRORS.invalid) : null;
+
+const GRADES = [
+  ['fine', 'Fine'],
+  ['very_good', 'Very Good'],
+  ['good', 'Good'],
+  ['fair', 'Fair'],
+  ['poor', 'Poor'],
+] as const;
+const GRADE_LABELS = new Map<string, string>(GRADES.map(([v, l]) => [v, l]));
+
+const METHODS = [
+  ['owner_estimate', 'Owner Estimate'],
+  ['appraisal', 'Appraisal'],
+  ['comparable_sale', 'Comparable Sale'],
+] as const;
+const METHOD_LABELS = new Map<string, string>([...METHODS.map(([v, l]) => [v, l] as [string, string]), ['ai_research', 'AI Research (estimate)']]);
+
+function money(low: number | null, high: number | null): string {
+  if (low !== null && high !== null && low !== high) return `${formatCents(low)} to ${formatCents(high)}`;
+  return formatCents(low ?? high) || 'No amount';
+}
+
+// Simple valuation-history chart: evenly spaced entries in date order, a bar
+// per valuation spanning low to high, midpoints joined. AI rows are estimates
+// and are marked as such.
+const chartable = valuations.filter((v) => v.amountLowCents !== null || v.amountHighCents !== null);
+const chart = (() => {
+  if (chartable.length === 0) return null;
+  const W = 640;
+  const H = 220;
+  const PAD = { left: 64, right: 16, top: 16, bottom: 34 };
+  const values = chartable.flatMap((v) => [v.amountLowCents, v.amountHighCents]).filter((n): n is number => n !== null);
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (min === max) {
+    min = min * 0.9;
+    max = max * 1.1 || 100;
+  }
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const x = (i: number) => PAD.left + (chartable.length === 1 ? innerW / 2 : (i / (chartable.length - 1)) * innerW);
+  const y = (cents: number) => PAD.top + innerH - ((cents - min) / (max - min)) * innerH;
+  const fmt = (cents: number) => `$${Math.round(cents / 100).toLocaleString('en-US')}`;
+  const points = chartable.map((v, i) => {
+    const low = v.amountLowCents ?? v.amountHighCents!;
+    const high = v.amountHighCents ?? v.amountLowCents!;
+    return { i, v, cx: x(i), yLow: y(low), yHigh: y(high), yMid: y((low + high) / 2), mid: (low + high) / 2 };
+  });
+  return { W, H, PAD, min, max, points, fmt, innerH };
+})();
+---
+
+<Admin title={piece.accession} active="pieces">
+  <h1>{piece.accession} · {piece.title}</h1>
+  <div class="btnrow" style="margin-top:18px;">
+    <span class={`pill${piece.isPublic ? ' on' : ''}`}>{piece.isPublic ? 'Public' : 'Draft'}</span>
+    {piece.isPublic && <a class="btn" href={`/piece/${piece.accession}/`} target="_blank" rel="noopener">View Public Page</a>}
+    <form method="post" action={`/api/admin/pieces/${piece.id}/publish`}>
+      <input type="hidden" name="public" value={piece.isPublic ? 'false' : 'true'} />
+      <button class={`btn${piece.isPublic ? '' : ' primary'}`} type="submit">
+        {piece.isPublic ? 'Unpublish' : 'Publish to Gallery'}
+      </button>
+    </form>
+  </div>
+
+  {notice && <p class="notice muted">{notice}</p>}
+  {errorMessage && <p class="notice">{errorMessage}</p>}
+
+  <h2>Catalog Record</h2>
+  <PieceForm action={`/api/admin/pieces/${piece.id}`} submitLabel="Save Piece" piece={piece} rooms={rooms} />
+
+  <h2>Images</h2>
+  {
+    images.length === 0 ? (
+      <p class="lede">No images yet. The gallery skips pieces without a front image.</p>
+    ) : (
+      <div class="thumbrow">
+        {images.map((img) => (
+          <div class="thumb">
+            <img src={cdnUrl(img.blobKey, { w: 340 })} width={img.width} height={img.height} alt={img.alt} loading="lazy" />
+            <div class="t">
+              <span>{img.kind} · {img.width}x{img.height}</span>
+              <form method="post" action={`/api/admin/images/${img.id}/delete`}>
+                <button type="submit">Remove</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/images`} enctype="multipart/form-data">
+    <div class="fieldrow">
+      <div class="field">
+        <label for="imgfile">Upload Image (JPEG or PNG)</label>
+        <input id="imgfile" name="file" type="file" accept="image/jpeg,image/png" required />
+      </div>
+      <div class="field">
+        <label for="imgkind">Kind</label>
+        <select id="imgkind" name="kind">
+          <option value="front">front</option>
+          <option value="back">back</option>
+          <option value="detail">detail</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="imgalt">Alt Text</label>
+      <input id="imgalt" name="alt" placeholder={piece.title} />
+    </div>
+    <div class="btnrow"><button class="btn" type="submit">Upload</button></div>
+  </form>
+
+  <h2>Acquisition</h2>
+  {
+    acquisitions.length > 0 && (
+      <table class="list">
+        <thead>
+          <tr><th>Acquired</th><th>Source</th><th>Price Paid</th><th>Provenance</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody>
+          {acquisitions.map((a) => (
+            <tr>
+              <td>{a.acquiredOn ?? ''}</td>
+              <td>{a.source ?? ''}</td>
+              <td class="num">{formatCents(a.pricePaidCents)}</td>
+              <td>
+                {a.provenanceText ?? ''}
+                {a.provenanceText && (
+                  <div><span class={`pill${a.isPublicProvenance ? ' on' : ''}`}>{a.isPublicProvenance ? 'Public provenance' : 'Private'}</span></div>
+                )}
+              </td>
+              <td>{a.notes ?? ''}</td>
+              <td>
+                <form method="post" action={`/api/admin/acquisitions/${a.id}/delete`}>
+                  <button class="btn" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/acquisitions`}>
+    <div class="fieldrow">
+      <div class="field">
+        <label for="acq_on">Acquired On</label>
+        <input id="acq_on" name="acquired_on" type="date" />
+      </div>
+      <div class="field">
+        <label for="acq_price">Price Paid (USD)</label>
+        <input id="acq_price" name="price_paid" inputmode="decimal" placeholder="450.00" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="acq_source">Source (private)</label>
+      <input id="acq_source" name="source" placeholder="Heritage Auctions sale 6291, lot 45012" />
+    </div>
+    <div class="field">
+      <label for="acq_prov">Provenance</label>
+      <textarea id="acq_prov" name="provenance_text"></textarea>
+      <label style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:12px;color:var(--body);">
+        <input type="checkbox" name="is_public_provenance" value="true" style="width:auto;" />
+        Show this provenance text on the public piece page
+      </label>
+    </div>
+    <div class="field">
+      <label for="acq_notes">Notes (private)</label>
+      <textarea id="acq_notes" name="notes"></textarea>
+    </div>
+    <div class="btnrow"><button class="btn" type="submit">Record Acquisition</button></div>
+  </form>
+
+  <h2>Valuations</h2>
+  <div class="btnrow">
+    <form method="post" action={`/api/admin/pieces/${piece.id}/valuations/ai`}>
+      <button class="btn primary" type="submit">Run AI Valuation Research</button>
+    </form>
+    <span class="count">Searches Heritage Auctions, eBay sold listings, and dealer catalogs. Takes up to a minute; the result is an estimate.</span>
+  </div>
+  {
+    chart && (
+      <div class="chart">
+        <svg viewBox={`0 0 ${chart.W} ${chart.H}`} role="img" aria-label="Valuation history">
+          <line x1={chart.PAD.left} y1={chart.PAD.top} x2={chart.PAD.left} y2={chart.PAD.top + chart.innerH} stroke="var(--line)" />
+          <line x1={chart.PAD.left} y1={chart.PAD.top + chart.innerH} x2={chart.W - chart.PAD.right} y2={chart.PAD.top + chart.innerH} stroke="var(--line)" />
+          <text class="axis" x={chart.PAD.left - 8} y={chart.PAD.top + 4} text-anchor="end">{chart.fmt(chart.max)}</text>
+          <text class="axis" x={chart.PAD.left - 8} y={chart.PAD.top + chart.innerH} text-anchor="end">{chart.fmt(chart.min)}</text>
+          {chart.points.length > 1 && (
+            <polyline
+              points={chart.points.map((p) => `${p.cx},${p.yMid}`).join(' ')}
+              fill="none"
+              stroke="var(--muted)"
+              stroke-width="1"
+            />
+          )}
+          {chart.points.map((p) => (
+            <g>
+              <line x1={p.cx} y1={p.yLow} x2={p.cx} y2={p.yHigh} stroke="var(--accent)" stroke-width="3" opacity="0.55" />
+              <circle cx={p.cx} cy={p.yMid} r="4" fill="var(--accent)" />
+              <title>{`${p.v.valuedOn} · ${METHOD_LABELS.get(p.v.method) ?? p.v.method} · ${money(p.v.amountLowCents, p.v.amountHighCents)}`}</title>
+              <text class="axis" x={p.cx} y={chart.PAD.top + chart.innerH + 16} text-anchor="middle">
+                {p.v.valuedOn.slice(0, 7)}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    )
+  }
+  {
+    valuations.length > 0 && (
+      <table class="list">
+        <thead>
+          <tr><th>Valued On</th><th>Method</th><th>Range</th><th>Notes and Comparables</th><th></th></tr>
+        </thead>
+        <tbody>
+          {[...valuations].reverse().map((v) => (
+            <tr>
+              <td>{v.valuedOn}</td>
+              <td>{METHOD_LABELS.get(v.method) ?? v.method}</td>
+              <td class="num">{money(v.amountLowCents, v.amountHighCents)}</td>
+              <td>
+                {v.notes ?? ''}
+                {(v.comparables ?? []).length > 0 && (
+                  <ul style="margin:10px 0 0 16px;">
+                    {(v.comparables ?? []).map((c) => (
+                      <li style="margin-bottom:6px;">
+                        {c.url ? (
+                          <a href={c.url} target="_blank" rel="noopener" style="color:var(--paper);">{c.source}</a>
+                        ) : (
+                          c.source
+                        )}
+                        {': '}
+                        {c.description} {c.price && `· ${c.price}`} {c.date && `· ${c.date}`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </td>
+              <td>
+                <form method="post" action={`/api/admin/valuations/${v.id}/delete`}>
+                  <button class="btn" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/valuations`}>
+    <div class="fieldrow">
+      <div class="field">
+        <label for="val_on">Valued On</label>
+        <input id="val_on" name="valued_on" type="date" required />
+      </div>
+      <div class="field">
+        <label for="val_method">Method</label>
+        <select id="val_method" name="method">
+          {METHODS.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+    </div>
+    <div class="fieldrow">
+      <div class="field">
+        <label for="val_low">Low (USD)</label>
+        <input id="val_low" name="amount_low" inputmode="decimal" placeholder="400" />
+      </div>
+      <div class="field">
+        <label for="val_high">High (USD)</label>
+        <input id="val_high" name="amount_high" inputmode="decimal" placeholder="600" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="val_notes">Notes</label>
+      <textarea id="val_notes" name="notes"></textarea>
+    </div>
+    <div class="btnrow"><button class="btn" type="submit">Record Valuation</button></div>
+  </form>
+
+  <h2>Condition Reports</h2>
+  {
+    conditionReports.length > 0 && (
+      <table class="list">
+        <thead>
+          <tr><th>Reported</th><th>Grade</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody>
+          {conditionReports.map((c) => (
+            <tr>
+              <td>{c.reportedOn}</td>
+              <td>{GRADE_LABELS.get(c.grade) ?? c.grade}</td>
+              <td>{c.notes ?? ''}</td>
+              <td>
+                <form method="post" action={`/api/admin/condition-reports/${c.id}/delete`}>
+                  <button class="btn" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/condition-reports`}>
+    <div class="fieldrow">
+      <div class="field">
+        <label for="cond_on">Reported On</label>
+        <input id="cond_on" name="reported_on" type="date" required />
+      </div>
+      <div class="field">
+        <label for="cond_grade">Grade</label>
+        <select id="cond_grade" name="grade">
+          {GRADES.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="cond_notes">Notes</label>
+      <textarea id="cond_notes" name="notes"></textarea>
+    </div>
+    <div class="btnrow"><button class="btn" type="submit">Record Condition</button></div>
+  </form>
+
+  <h2>Research Notes</h2>
+  {
+    researchNotes.length > 0 && (
+      <table class="list">
+        <tbody>
+          {researchNotes.map((n) => (
+            <tr>
+              <td style="white-space:pre-wrap;">{n.body}</td>
+              <td style="width:120px;">
+                <span class="pill">{n.createdBy === 'ai' ? 'AI' : 'Owner'}</span>
+                {(n.sources ?? []).map((s) => (
+                  <div><a href={s.url} target="_blank" rel="noopener" style="color:var(--muted);font-size:11px;">{s.title || s.url}</a></div>
+                ))}
+              </td>
+              <td style="width:90px;">
+                <form method="post" action={`/api/admin/research-notes/${n.id}/delete`}>
+                  <button class="btn" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+  <form class="stack" method="post" action={`/api/admin/pieces/${piece.id}/research-notes`}>
+    <div class="field">
+      <label for="note_body">Note</label>
+      <textarea id="note_body" name="body" required></textarea>
+    </div>
+    <div class="field">
+      <label for="note_sources">Sources (one URL per line)</label>
+      <textarea id="note_sources" name="sources" style="min-height:70px;"></textarea>
+    </div>
+    <div class="btnrow"><button class="btn" type="submit">Add Note</button></div>
+  </form>
+
+  <h2>Delete</h2>
+  <p class="lede">Removes the piece, its records, and its stored images. There is no undo.</p>
+  <form method="post" action={`/api/admin/pieces/${piece.id}/delete`} onsubmit="return confirm('Delete this piece and all of its records?');">
+    <div class="btnrow"><button class="btn danger" type="submit">Delete Piece</button></div>
+  </form>
+</Admin>

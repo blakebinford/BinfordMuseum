@@ -1,0 +1,86 @@
+---
+import type { Piece, Room } from '../../db/schema';
+
+interface Props {
+  action: string;
+  submitLabel: string;
+  piece?: Piece;
+  rooms: Room[];
+}
+
+const { action, submitLabel, piece, rooms } = Astro.props;
+
+const OBJECT_TYPES = ['map', 'document', 'currency', 'stereoview', 'photograph', 'print', 'certificate', 'object'];
+---
+
+<form class="stack" method="post" action={action}>
+  <div class="fieldrow">
+    <div class="field">
+      <label for="accession">Accession</label>
+      <input id="accession" name="accession" required value={piece?.accession ?? ''} placeholder="GCC.1890.01" />
+    </div>
+    <div class="field">
+      <label for="object_type">Object Type</label>
+      <select id="object_type" name="object_type" required>
+        {OBJECT_TYPES.map((t) => <option value={t} selected={piece?.objectType === t}>{t}</option>)}
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" required value={piece?.title ?? ''} />
+  </div>
+  <div class="fieldrow">
+    <div class="field">
+      <label for="date_display">Date (display)</label>
+      <input id="date_display" name="date_display" value={piece?.dateDisplay ?? ''} placeholder="c. 1901–1903" />
+    </div>
+    <div class="field">
+      <label for="date_sort_year">Sort Year</label>
+      <input id="date_sort_year" name="date_sort_year" type="number" min="1500" max="2100" value={piece?.dateSortYear ?? ''} />
+    </div>
+  </div>
+  <div class="field">
+    <label for="maker">Maker</label>
+    <input id="maker" name="maker" value={piece?.maker ?? ''} />
+  </div>
+  <div class="fieldrow">
+    <div class="field">
+      <label for="medium">Medium</label>
+      <input id="medium" name="medium" value={piece?.medium ?? ''} />
+    </div>
+    <div class="field">
+      <label for="dimensions">Dimensions</label>
+      <input id="dimensions" name="dimensions" value={piece?.dimensions ?? ''} placeholder="21.5 x 13.5 in." />
+    </div>
+  </div>
+  <div class="field">
+    <label for="meta">Meta Line</label>
+    <input id="meta" name="meta" value={piece?.meta ?? ''} placeholder="1902 · Maker · Medium" />
+    <span class="help">The placard line shown under the title, exactly as it should read.</span>
+  </div>
+  <div class="fieldrow">
+    <div class="field">
+      <label for="room_id">Room</label>
+      <select id="room_id" name="room_id">
+        <option value="">Unplaced (catalog only)</option>
+        {rooms.map((r) => (
+          <option value={String(r.id)} selected={piece?.roomId === r.id}>Room {r.numeral} · {r.title}</option>
+        ))}
+      </select>
+    </div>
+    <div class="field">
+      <label for="room_order">Room Order</label>
+      <input id="room_order" name="room_order" type="number" min="1" value={piece?.roomOrder ?? ''} />
+      <span class="help">Position within the room's walk, 1 first.</span>
+    </div>
+  </div>
+  <div class="field">
+    <label for="label">Label</label>
+    <textarea id="label" name="label">{piece?.label ?? ''}</textarea>
+    <span class="help">The single wall label. No em dashes.</span>
+  </div>
+  <div class="btnrow">
+    <button class="btn primary" type="submit">{submitLabel}</button>
+  </div>
+</form>

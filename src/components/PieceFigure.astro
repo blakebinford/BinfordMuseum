@@ -1,0 +1,56 @@
+---
+import type { PublicPiece } from '../lib/public-data';
+import { cdnLargeUrl, cdnSrcset, cdnUrl } from '../lib/images';
+
+interface Props {
+  piece: PublicPiece;
+  /** figure class list from the placement map, e.g. "pl std" or "cab". */
+  layout: string;
+}
+
+const { piece, layout } = Astro.props;
+
+const SIZES: Record<string, string> = {
+  wide: '(max-width: 700px) 92vw, 730px',
+  std: '(max-width: 700px) 92vw, 560px',
+  sm: '(max-width: 700px) 92vw, 440px',
+  cab: '(max-width: 900px) 92vw, 350px',
+};
+const variant = layout === 'cab' ? 'cab' : (layout.split(' ')[1] ?? 'std');
+
+const front = piece.images.find((img) => img.kind === 'front');
+const back = piece.images.find((img) => img.kind === 'back');
+---
+
+<figure class={`piece ${layout}`}>
+  {
+    front && (
+      <div
+        class="frame"
+        data-acc={piece.accession}
+        data-full={cdnLargeUrl(front.blobKey, front.width)}
+        data-back={back ? cdnLargeUrl(back.blobKey, back.width) : null}
+        tabindex="0"
+        role="button"
+        aria-label={`View ${piece.title} in detail`}
+      >
+        <img
+          src={cdnUrl(front.blobKey, { w: 730 })}
+          srcset={cdnSrcset(front.blobKey, front.width)}
+          sizes={SIZES[variant] ?? SIZES.std}
+          width={front.width}
+          height={front.height}
+          alt={front.alt || piece.title}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    )
+  }
+  <figcaption>
+    <span class="acc">{piece.accession}</span>
+    <h3>{piece.title}</h3>
+    <p class="meta">{piece.meta}</p>
+    <p class="note">{piece.label}</p>
+  </figcaption>
+</figure>
